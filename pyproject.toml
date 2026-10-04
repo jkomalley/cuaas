@@ -22,3 +22,18 @@ dev = [
     "ruff>=0.16.10",
     "ty>=0.0.84",
 ]
+
+[tool.fastapi]
+entrypoint = "cuaas.main:app"
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    "COM812",           # conflicts with ruff format
+    "D203", "D213",     # conflict with D211/D212
+    "CPY001",           # no copyright headers
+    "FBT001", "FBT002", # FastAPI bool query params are positional by design
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "PLR2004", "D", "ANN"]
