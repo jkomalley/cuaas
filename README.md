@@ -24,11 +24,12 @@ curl -X POST localhost:8000/echo \
 
 ## Development
 
+Needs [uv](https://docs.astral.sh/uv/) and [just](https://just.systems).
+
 ```sh
 uv sync
-uv run fastapi dev   # http://127.0.0.1:8000/docs
-uv run pytest
-uv run ruff check --fix
-uv run ruff format
-uv run ty check
+just dev     # http://127.0.0.1:8000/docs
+just test
+just fix     # fix lint and format
+just check   # lint + types + tests, same as ci
 ```
