@@ -12,19 +12,13 @@ def client():
         yield c
 
 
-def test_echo_no_args(client):
-    response = client.post("/echo")
-    assert response.status_code == 200
-    assert response.text == "\n"
-
-
 @pytest.mark.parametrize(
-    ("params", "expected"),
+    ("body", "expected"),
     [
+        ({}, "\n"),
         ({"args": ["hello"]}, "hello\n"),
         ({"args": ["hello", "world"]}, "hello world\n"),
         ({"args": ["a", "", "b"]}, "a  b\n"),
-        ({"args": ["a,b"]}, "a,b\n"),
         ({"args": ["b", "a"]}, "b a\n"),
         ({"args": ["héllo", "日本"]}, "héllo 日本\n"),
         ({"args": ["a b"]}, "a b\n"),
@@ -32,17 +26,30 @@ def test_echo_no_args(client):
         ({"args": ["hi"], "no_newline": False}, "hi\n"),
     ],
 )
-def test_echo(client, params, expected):
-    response = client.post("/echo", params=params)
+def test_echo(client, body, expected):
+    response = client.post("/echo", json=body)
     assert response.status_code == 200
-    assert response.text == expected
+    assert response.json() == {"stdout": expected, "stderr": "", "exit_code": 0}
 
 
 def test_echo_content_type(client):
-    response = client.post("/echo", params={"args": ["hi"]})
-    assert response.headers["content-type"].startswith("text/plain")
+    response = client.post("/echo", json={"args": ["hi"]})
+    assert response.headers["content-type"] == "application/json"
 
 
-def test_echo_invalid(client):
-    response = client.post("/echo", params={"no_newline": "banana"})
+@pytest.mark.parametrize(
+    "body",
+    [
+        {"no_newline": "banana"},
+        {"args": "hi"},
+        {"n": True},
+    ],
+)
+def test_echo_invalid(client, body):
+    response = client.post("/echo", json=body)
+    assert response.status_code == 422
+
+
+def test_echo_missing_body(client):
+    response = client.post("/echo")
     assert response.status_code == 422
