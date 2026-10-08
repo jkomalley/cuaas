@@ -6,6 +6,5 @@ from cuaas.commands import echo, wc
 
 app = FastAPI()
 
-
 app.include_router(echo.router)
 app.include_router(wc.router)

@@ -1,8 +1,17 @@
 """echo command."""
 
 from fastapi import APIRouter
+from pydantic import Field
 
-from cuaas.models import CommandResponse, EchoRequest
+from cuaas.models import CommandRequest, CommandResponse
+
+
+class EchoRequest(CommandRequest):
+    """Arguments and flags for echo."""
+
+    args: list[str] = Field(default_factory=list)
+    no_newline: bool = False
+
 
 router = APIRouter()
 

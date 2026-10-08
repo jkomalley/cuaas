@@ -2,7 +2,18 @@
 
 from fastapi import APIRouter
 
-from cuaas.models import CommandResponse, WcRequest
+from cuaas.models import CommandRequest, CommandResponse
+
+
+class WcRequest(CommandRequest):
+    """Arguments and flags for wc."""
+
+    stdin: str = ""
+    lines: bool = False
+    words: bool = False
+    chars: bool = False
+    bytes: bool = False
+
 
 router = APIRouter()
 
