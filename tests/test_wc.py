@@ -1,18 +1,9 @@
-"""Tests for the wc endpoint.
+"""Tests for the cuaas wc endpoint.
 
 Expected output follows GNU coreutils wc reading from stdin.
 """
 
 import pytest
-from fastapi.testclient import TestClient
-
-from cuaas.main import app
-
-
-@pytest.fixture
-def client():
-    with TestClient(app) as c:
-        yield c
 
 
 @pytest.mark.parametrize(
