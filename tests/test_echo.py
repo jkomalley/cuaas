@@ -1,4 +1,4 @@
-"""Tests for the echo endpoint."""
+"""Tests for the cuaas echo endpoint."""
 
 import pytest
 from fastapi.testclient import TestClient

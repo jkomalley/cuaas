@@ -1,7 +1,4 @@
-"""Tests for the wc endpoint.
-
-Expected output follows GNU coreutils wc reading from stdin.
-"""
+"""Tests for the cuaas wc endpoint."""
 
 import pytest
 from fastapi.testclient import TestClient
