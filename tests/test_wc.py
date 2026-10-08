@@ -1,4 +1,7 @@
-"""Tests for the cuaas wc endpoint."""
+"""Tests for the cuaas wc endpoint.
+
+Expected output follows GNU coreutils wc reading from stdin.
+"""
 
 import pytest
 
