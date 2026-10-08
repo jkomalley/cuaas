@@ -1,15 +1,6 @@
 """Tests for the cuaas echo endpoint."""
 
 import pytest
-from fastapi.testclient import TestClient
-
-from cuaas.main import app
-
-
-@pytest.fixture
-def client():
-    with TestClient(app) as c:
-        yield c
 
 
 @pytest.mark.parametrize(
