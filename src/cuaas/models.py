@@ -9,6 +9,12 @@ class CommandRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
+class StdinRequest(CommandRequest):
+    """Command request with stdin."""
+
+    stdin: str = ""
+
+
 class CommandResponse(BaseModel):
     """Base class for command responses."""
 
