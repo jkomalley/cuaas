@@ -55,6 +55,7 @@ class StrictJSONRoute(APIRoute):
                     errors = e.errors(include_url=False, include_input=False)
                     raise RequestValidationError(
                         [{**error, "loc": ("body", *error["loc"])} for error in errors],
+                        body=body,
                     ) from e
                 # the 422 echoes the input, and json can't send inf/nan back
                 if (loc := _non_finite(value)) is not None:
@@ -66,6 +67,7 @@ class StrictJSONRoute(APIRoute):
                                 "msg": "Input should be a finite number",
                             },
                         ],
+                        body=body,
                     )
             return await handler(request)
 
