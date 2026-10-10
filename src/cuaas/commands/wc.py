@@ -9,10 +9,10 @@ from cuaas.routing import StrictJSONRoute
 class WcRequest(StdinRequest):
     """Arguments and flags for wc."""
 
-    lines: bool = False
-    words: bool = False
-    chars: bool = False
-    bytes: bool = False
+    lines: bool = False  # -l
+    words: bool = False  # -w
+    chars: bool = False  # -m
+    bytes: bool = False  # -c
 
 
 router = APIRouter(route_class=StrictJSONRoute)
@@ -21,18 +21,21 @@ router = APIRouter(route_class=StrictJSONRoute)
 @router.post("/wc")
 async def wc(request: WcRequest) -> CommandResponse:
     """Return line, word, char, and byte counts."""
+    # no flags means the GNU default: lines, words, bytes
     flag_set = any((request.lines, request.words, request.chars, request.bytes))
 
     data = request.stdin_bytes
     # like gwc -m, invalid UTF-8 isn't counted as chars
     text = data.decode(errors="ignore")
 
+    # always lines, words, chars, bytes, whatever the flag order
     counts: list[int] = []
 
     if request.lines or not flag_set:
         counts.append(data.count(b"\n"))
 
     if request.words or not flag_set:
+        # close to GNU but not exact, see #61
         counts.append(len(text.split()))
 
     if request.chars:
@@ -41,6 +44,7 @@ async def wc(request: WcRequest) -> CommandResponse:
     if request.bytes or not flag_set:
         counts.append(len(data))
 
+    # like gwc on stdin: one count un-padded, more padded to 7
     if len(counts) == 1:
         stdout = str(counts[0])
     else:

@@ -20,16 +20,20 @@ class StrictJSONRequest(Request):
 
     async def json(self) -> object:
         """Parse the body, raising JSONDecodeError so fastapi returns a 422."""
+        # cache it like starlette does
         if not hasattr(self, "_json"):
             body = await self.body()
             try:
                 self._json = pydantic_core.from_json(body)
             except ValueError as e:
+                # fastapi only 422s on JSONDecodeError. pydantic has no
+                # position, so it's 0
                 doc = body.decode(errors="replace")
                 raise json.JSONDecodeError(str(e), doc, 0) from e
         return self._json
 
 
+# every command router must use this
 class StrictJSONRoute(APIRoute):
     """Route that hands its endpoint a StrictJSONRequest."""
 

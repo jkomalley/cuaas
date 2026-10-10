@@ -11,7 +11,7 @@ class EchoRequest(CommandRequest):
     """Arguments and flags for echo."""
 
     args: list[str] = Field(default_factory=list)
-    no_newline: bool = False
+    no_newline: bool = False  # -n
 
 
 router = APIRouter(route_class=StrictJSONRoute)
