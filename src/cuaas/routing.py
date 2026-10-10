@@ -1,5 +1,6 @@
 """Strict JSON parsing for command routes."""
 
+import json
 import math
 from typing import TYPE_CHECKING, Any
 
@@ -16,10 +17,10 @@ if TYPE_CHECKING:
 _json = TypeAdapter(Any)
 
 
-def _non_finite(value: object, loc: tuple = ()) -> tuple | None:
-    """Return the loc of the first inf/nan float, or None."""
+def _non_finite(value: object, loc: tuple = ()) -> tuple[tuple, float] | None:
+    """Return the loc and value of the first inf/nan float, or None."""
     if isinstance(value, float):
-        return None if math.isfinite(value) else loc
+        return None if math.isfinite(value) else (loc, value)
     if isinstance(value, dict):
         items = value.items()
     elif isinstance(value, list):
@@ -58,13 +59,16 @@ class StrictJSONRoute(APIRoute):
                         body=body,
                     ) from e
                 # the 422 echoes the input, and json can't send inf/nan back
-                if (loc := _non_finite(value)) is not None:
+                if (found := _non_finite(value)) is not None:
+                    loc, bad = found
                     raise RequestValidationError(
                         [
                             {
                                 "type": "finite_number",
                                 "loc": ("body", *loc),
                                 "msg": "Input should be a finite number",
+                                # as a string, like "NaN" or "Infinity"
+                                "input": json.dumps(bad),
                             },
                         ],
                         body=body,
