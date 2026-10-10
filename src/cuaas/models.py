@@ -1,7 +1,5 @@
 """Models for cuaas."""
 
-from typing import Self
-
 from pydantic import BaseModel, ConfigDict
 
 
@@ -34,7 +32,7 @@ class CommandResponse(BaseModel):
     exit_code: int = 0
 
     @classmethod
-    def from_bytes(cls, stdout: bytes, exit_code: int = 0) -> Self:
+    def from_bytes(cls, stdout: bytes, exit_code: int = 0) -> CommandResponse:
         """Build a response from stdout bytes, decoded as UTF-8."""
         # raises on invalid UTF-8, nothing produces it until #52
         return cls(stdout=stdout.decode(), exit_code=exit_code)
