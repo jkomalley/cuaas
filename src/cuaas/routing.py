@@ -1,47 +1,43 @@
 """Strict JSON parsing for command routes."""
 
-import json
 from typing import TYPE_CHECKING, Any
 
-import pydantic_core
-from fastapi import Request, Response
+from fastapi.exceptions import RequestValidationError
 from fastapi.routing import APIRoute
+from pydantic import TypeAdapter, ValidationError
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Coroutine
 
+    from fastapi import Request, Response
 
-class StrictJSONRequest(Request):
-    r"""Request that parses JSON with pydantic instead of the stdlib.
-
-    The stdlib accepts lone surrogates like "\ud800", which can't be encoded
-    as UTF-8 later. Pydantic rejects them as invalid JSON.
-    """
-
-    async def json(self) -> object:
-        """Parse the body, raising JSONDecodeError so fastapi returns a 422."""
-        # cache it like starlette does
-        if not hasattr(self, "_json"):
-            body = await self.body()
-            try:
-                self._json = pydantic_core.from_json(body)
-            except ValueError as e:
-                # fastapi only 422s on JSONDecodeError. pydantic has no
-                # position, so it's 0
-                doc = body.decode(errors="replace")
-                raise json.JSONDecodeError(str(e), doc, 0) from e
-        return self._json
+# parses any JSON, only used to check the body
+_json = TypeAdapter(Any)
 
 
 # every command router must use this
 class StrictJSONRoute(APIRoute):
-    """Route that hands its endpoint a StrictJSONRequest."""
+    r"""Route that rejects bodies pydantic's JSON parser won't accept.
+
+    Fastapi parses with the stdlib, which accepts lone surrogates like
+    "\ud800" that can't be encoded as UTF-8 later. Pydantic rejects them.
+    """
 
     def get_route_handler(self) -> Callable[[Request], Coroutine[Any, Any, Response]]:
-        """Wrap the default handler to swap in StrictJSONRequest."""
+        """Wrap the default handler with a strict JSON check."""
         handler = super().get_route_handler()
 
         async def strict_handler(request: Request) -> Response:
-            return await handler(StrictJSONRequest(request.scope, request.receive))
+            # starlette caches the body, so the handler can read it again
+            body = await request.body()
+            if body:
+                try:
+                    _json.validate_json(body)
+                except ValidationError as e:
+                    errors = e.errors(include_url=False, include_input=False)
+                    raise RequestValidationError(
+                        [{**error, "loc": ("body", *error["loc"])} for error in errors],
+                    ) from e
+            return await handler(request)
 
         return strict_handler
