@@ -21,6 +21,9 @@ import pytest
         ({"stdin": "a\nb", "lines": True}, "1\n"),
         # words are runs of non-whitespace
         ({"stdin": "  a\t\tb \n", "words": True}, "2\n"),
+        # unicode whitespace splits words too, not just ascii
+        ({"stdin": "a b", "words": True}, "2\n"),
+        ({"stdin": "a b", "words": True}, "2\n"),
         # chars vs bytes
         ({"stdin": "héllo", "chars": True}, "5\n"),
         ({"stdin": "héllo", "bytes": True}, "6\n"),
