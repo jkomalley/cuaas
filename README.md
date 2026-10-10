@@ -22,6 +22,29 @@ curl -X POST localhost:8000/echo \
 {"stdout": "hello world", "stderr": "", "exit_code": 0}
 ```
 
+## Errors
+
+Bad JSON or a bad value gets a 422 from pydantic:
+
+```sh
+# wc with a number instead of text
+curl -X POST localhost:8000/wc \
+  -H 'content-type: application/json' \
+  -d '{"stdin": 5}' \
+  -w '\n%{http_code}\n'
+```
+
+```
+{"detail":[{"type":"string_type","loc":["body","stdin"],"msg":"Input should be a valid string","input":5}]}
+422
+```
+
+If the command ran it's a 200, even if it failed. Check `exit_code` and `stderr`.
+
+`NaN`, `Infinity` and lone surrogates like `"\ud800"` get a 422 too. Raw bytes will go through base64 (#51).
+
+A body without a JSON content-type gets a 415, so don't forget the `-H` with curl.
+
 ## Development
 
 Needs [uv](https://docs.astral.sh/uv/) and [just](https://just.systems).
