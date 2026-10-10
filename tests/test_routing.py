@@ -69,6 +69,32 @@ def test_non_finite_rejected(client, path, body, loc, value):
 
 
 @pytest.mark.parametrize(
+    ("content_type", "body"),
+    [
+        ("text/plain", b'{"stdin": "a"}'),
+        ("application/x-www-form-urlencoded", b"stdin=a"),
+        # fastapi's own 422 would echo this and crash on the invalid UTF-8
+        ("text/plain", b"caf\xe9"),
+        (None, b'{"stdin": "a"}'),
+    ],
+)
+def test_non_json_rejected(client, content_type, body):
+    headers = {"content-type": content_type} if content_type else {}
+    response = client.post("/wc", content=body, headers=headers)
+    assert response.status_code == 415
+
+
+@pytest.mark.parametrize(
+    "content_type", ["application/json; charset=utf-8", "application/vnd.api+json"]
+)
+def test_json_content_types_ok(client, content_type):
+    response = client.post(
+        "/wc", content=b'{"stdin": "a"}', headers={"content-type": content_type}
+    )
+    assert response.status_code == 200
+
+
+@pytest.mark.parametrize(
     "name", [m.name for m in pkgutil.iter_modules(commands.__path__)]
 )
 def test_routes_parse_strict_json(name):

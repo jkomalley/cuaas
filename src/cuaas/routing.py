@@ -4,6 +4,7 @@ import json
 import math
 from typing import TYPE_CHECKING, Any
 
+from fastapi import HTTPException
 from fastapi.exceptions import RequestValidationError
 from fastapi.routing import APIRoute
 from pydantic import TypeAdapter, ValidationError
@@ -15,6 +16,14 @@ if TYPE_CHECKING:
 
 # parses any JSON, only used to check the body
 _json = TypeAdapter(Any)
+
+
+def _is_json(content_type: str) -> bool:
+    """Return whether a content-type header is JSON, like application/*+json."""
+    mime = content_type.partition(";")[0].strip().lower()
+    return mime == "application/json" or (
+        mime.startswith("application/") and mime.endswith("+json")
+    )
 
 
 def _non_finite(value: object, loc: tuple = ()) -> tuple[tuple, float] | None:
@@ -40,6 +49,7 @@ class StrictJSONRoute(APIRoute):
     Fastapi parses with the stdlib, which accepts lone surrogates like
     "\ud800" that can't be encoded as UTF-8 later. Pydantic rejects them.
     Both accept NaN, Infinity and 1e999 as floats, which break the 422.
+    Non-JSON bodies get a 415 instead of fastapi's 422.
     """
 
     def get_route_handler(self) -> Callable[[Request], Coroutine[Any, Any, Response]]:
@@ -50,6 +60,13 @@ class StrictJSONRoute(APIRoute):
             # starlette caches the body, so the handler can read it again
             body = await request.body()
             if body:
+                # fastapi's own 422 for non-JSON bodies echoes the raw bytes,
+                # which crashes on invalid UTF-8
+                if not _is_json(request.headers.get("content-type", "")):
+                    raise HTTPException(
+                        status_code=415,
+                        detail="Content-type must be application/json",
+                    )
                 try:
                     value = _json.validate_json(body)
                 except ValidationError as e:
