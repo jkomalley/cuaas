@@ -57,11 +57,19 @@ class CommandResponse(BaseModel):
 
     stdout: str = ""
     stderr: str = ""
+    # base64 when stdout isn't valid UTF-8
+    stdout_encoding: Literal["utf-8", "base64"] = "utf-8"
     # the command's exit code, not the HTTP status
     exit_code: int = 0
 
     @classmethod
     def from_bytes(cls, stdout: bytes, exit_code: int = 0) -> CommandResponse:
-        """Build a response from stdout bytes, decoded as UTF-8."""
-        # raises on invalid UTF-8, nothing produces it until #52
-        return cls(stdout=stdout.decode(), exit_code=exit_code)
+        """Build a response from stdout bytes, as UTF-8 or else base64."""
+        try:
+            return cls(stdout=stdout.decode(), exit_code=exit_code)
+        except UnicodeDecodeError:
+            return cls(
+                stdout=base64.b64encode(stdout).decode(),
+                stdout_encoding="base64",
+                exit_code=exit_code,
+            )
