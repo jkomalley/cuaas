@@ -16,15 +16,20 @@ if TYPE_CHECKING:
 _json = TypeAdapter(Any)
 
 
-def _finite(value: object) -> bool:
-    """Return whether every float in a parsed JSON value is finite."""
+def _non_finite(value: object, loc: tuple = ()) -> tuple | None:
+    """Return the loc of the first inf/nan float, or None."""
     if isinstance(value, float):
-        return math.isfinite(value)
+        return None if math.isfinite(value) else loc
     if isinstance(value, dict):
-        return all(_finite(v) for v in value.values())
-    if isinstance(value, list):
-        return all(_finite(v) for v in value)
-    return True
+        items = value.items()
+    elif isinstance(value, list):
+        items = enumerate(value)
+    else:
+        return None
+    for key, item in items:
+        if (found := _non_finite(item, (*loc, key))) is not None:
+            return found
+    return None
 
 
 # every command router must use this
@@ -52,12 +57,12 @@ class StrictJSONRoute(APIRoute):
                         [{**error, "loc": ("body", *error["loc"])} for error in errors],
                     ) from e
                 # the 422 echoes the input, and json can't send inf/nan back
-                if not _finite(value):
+                if (loc := _non_finite(value)) is not None:
                     raise RequestValidationError(
                         [
                             {
                                 "type": "finite_number",
-                                "loc": ("body",),
+                                "loc": ("body", *loc),
                                 "msg": "Input should be a finite number",
                             },
                         ],

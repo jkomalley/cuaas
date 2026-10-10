@@ -47,22 +47,24 @@ def test_surrogate_pair_ok(client):
 
 
 @pytest.mark.parametrize(
-    ("path", "body"),
+    ("path", "body", "loc"),
     [
-        ("/wc", '{"stdin": NaN}'),
-        ("/wc", '{"lines": -Infinity}'),
+        ("/wc", '{"stdin": NaN}', ["body", "stdin"]),
+        ("/wc", '{"lines": -Infinity}', ["body", "lines"]),
         # valid JSON, but too big for a float so it parses as inf
-        ("/wc", '{"stdin": 1e999}'),
-        ("/echo", '{"args": ["ok", [Infinity]]}'),
+        ("/wc", '{"stdin": 1e999}', ["body", "stdin"]),
+        ("/echo", '{"args": ["ok", [Infinity]]}', ["body", "args", 1, 0]),
     ],
 )
-def test_non_finite_rejected(client, path, body):
+def test_non_finite_rejected(client, path, body, loc):
     # a 422 echoes the input, and inf/nan can't be sent back as JSON
     response = client.post(
         path, content=body, headers={"content-type": "application/json"}
     )
     assert response.status_code == 422
-    assert response.json()["detail"][0]["type"] == "finite_number"
+    error = response.json()["detail"][0]
+    assert error["type"] == "finite_number"
+    assert error["loc"] == loc
 
 
 @pytest.mark.parametrize(
