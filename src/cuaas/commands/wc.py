@@ -27,6 +27,8 @@ async def wc(request: WcRequest) -> CommandResponse:
     data = request.stdin_bytes
     # like gwc -m, invalid UTF-8 isn't counted as chars
     text = data.decode(errors="ignore")
+    # but gwc -w counts it as part of a word, and U+FFFD isn't whitespace
+    words = data.decode(errors="replace").split()
 
     # always lines, words, chars, bytes, whatever the flag order
     counts: list[int] = []
@@ -36,7 +38,7 @@ async def wc(request: WcRequest) -> CommandResponse:
 
     if request.words or not flag_set:
         # close to GNU but not exact, see #61
-        counts.append(len(text.split()))
+        counts.append(len(words))
 
     if request.chars:
         counts.append(len(text))
