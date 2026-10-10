@@ -20,7 +20,12 @@ import pytest
 def test_echo(client, body, expected):
     response = client.post("/echo", json=body)
     assert response.status_code == 200
-    assert response.json() == {"stdout": expected, "stderr": "", "exit_code": 0}
+    assert response.json() == {
+        "stdout": expected,
+        "stderr": "",
+        "stdout_encoding": "utf-8",
+        "exit_code": 0,
+    }
 
 
 def test_echo_content_type(client):

@@ -3,6 +3,8 @@
 Expected output follows GNU coreutils wc reading from stdin.
 """
 
+import base64
+
 import pytest
 
 
@@ -44,7 +46,43 @@ import pytest
 def test_wc(client, body, expected):
     response = client.post("/wc", json=body)
     assert response.status_code == 200
-    assert response.json() == {"stdout": expected, "stderr": "", "exit_code": 0}
+    assert response.json() == {
+        "stdout": expected,
+        "stderr": "",
+        "stdout_encoding": "utf-8",
+        "exit_code": 0,
+    }
+
+
+@pytest.mark.parametrize(
+    ("stdin", "flag", "expected"),
+    [
+        # gwc counts invalid UTF-8 as word chars
+        (b"\xff", "words", "1\n"),
+        (b"a \xff b", "words", "3\n"),
+        (b"\xff\xfe \xc3", "words", "2\n"),
+        # but not as chars
+        (b"\xff", "chars", "0\n"),
+        (b"\xff", "bytes", "1\n"),
+    ],
+)
+def test_wc_binary(client, stdin, flag, expected):
+    body = {
+        "stdin": base64.b64encode(stdin).decode(),
+        "stdin_encoding": "base64",
+        flag: True,
+    }
+    response = client.post("/wc", json=body)
+    assert response.status_code == 200
+    assert response.json()["stdout"] == expected
+
+
+def test_wc_invalid_base64(client):
+    response = client.post("/wc", json={"stdin": "!!", "stdin_encoding": "base64"})
+    assert response.status_code == 422
+    error = response.json()["detail"][0]
+    assert error["type"] == "base64_decode"
+    assert error["loc"] == ["body", "stdin"]
 
 
 @pytest.mark.parametrize(
@@ -53,6 +91,7 @@ def test_wc(client, body, expected):
         {"args": ["file.txt"]},
         {"lines": "banana"},
         {"stdin": 5},
+        {"stdin_encoding": "latin-1"},
     ],
 )
 def test_wc_invalid(client, body):
