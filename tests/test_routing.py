@@ -47,6 +47,25 @@ def test_surrogate_pair_ok(client):
 
 
 @pytest.mark.parametrize(
+    ("path", "body"),
+    [
+        ("/wc", '{"stdin": NaN}'),
+        ("/wc", '{"lines": -Infinity}'),
+        # valid JSON, but too big for a float so it parses as inf
+        ("/wc", '{"stdin": 1e999}'),
+        ("/echo", '{"args": ["ok", [Infinity]]}'),
+    ],
+)
+def test_non_finite_rejected(client, path, body):
+    # a 422 echoes the input, and inf/nan can't be sent back as JSON
+    response = client.post(
+        path, content=body, headers={"content-type": "application/json"}
+    )
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["type"] == "finite_number"
+
+
+@pytest.mark.parametrize(
     "name", [m.name for m in pkgutil.iter_modules(commands.__path__)]
 )
 def test_routes_parse_strict_json(name):

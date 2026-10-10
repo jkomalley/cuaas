@@ -39,9 +39,9 @@ curl -X POST localhost:8000/wc \
 422
 ```
 
-Anything else is a 200, even if the command fails. Check `exit_code` and `stderr`.
+If the command ran it's a 200, even if it failed. Check `exit_code` and `stderr`.
 
-Lone surrogates like `"\ud800"` count as bad JSON. Raw bytes will go through base64 (#51).
+Lone surrogates like `"\ud800"` count as bad JSON, and so do `NaN`, `Infinity` and huge numbers like `1e999`. Raw bytes will go through base64 (#51).
 
 ## Development
 
