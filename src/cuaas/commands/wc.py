@@ -23,19 +23,23 @@ async def wc(request: WcRequest) -> CommandResponse:
     """Return line, word, char, and byte counts."""
     flag_set = any((request.lines, request.words, request.chars, request.bytes))
 
+    data = request.stdin_bytes
+    # like gwc -m, invalid UTF-8 isn't counted as chars
+    text = data.decode(errors="ignore")
+
     counts: list[int] = []
 
     if request.lines or not flag_set:
-        counts.append(request.stdin.count("\n"))
+        counts.append(data.count(b"\n"))
 
     if request.words or not flag_set:
-        counts.append(len(request.stdin.split()))
+        counts.append(len(text.split()))
 
     if request.chars:
-        counts.append(len(request.stdin))
+        counts.append(len(text))
 
     if request.bytes or not flag_set:
-        counts.append(len(request.stdin.encode()))
+        counts.append(len(data))
 
     if len(counts) == 1:
         stdout = str(counts[0])
