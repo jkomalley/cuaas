@@ -1,7 +1,6 @@
 """Models for cuaas."""
 
 import base64
-import binascii
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, ValidationInfo, field_validator
@@ -35,7 +34,7 @@ class StdinRequest(CommandRequest):
         if info.data.get("stdin_encoding") == "base64":
             try:
                 _b64decode(stdin)
-            except (binascii.Error, ValueError) as e:
+            except ValueError as e:
                 # same type and message pydantic uses for its own base64
                 error_type = "base64_decode"
                 msg = "Base64 decoding error: '{error}'"
