@@ -43,7 +43,7 @@ If the command ran it's a 200, even if it failed. Check `exit_code` and `stderr`
 
 `NaN`, `Infinity` and lone surrogates like `"\ud800"` get a 422 too. Raw bytes will go through base64 (#51).
 
-A body that isn't `application/json` gets a 415, so don't forget the `-H` with curl.
+A body without a JSON content-type gets a 415, so don't forget the `-H` with curl.
 
 ## Development
 

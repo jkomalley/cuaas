@@ -76,6 +76,8 @@ def test_non_finite_rejected(client, path, body, loc, value):
         # fastapi's own 422 would echo this and crash on the invalid UTF-8
         ("text/plain", b"caf\xe9"),
         (None, b'{"stdin": "a"}'),
+        # malformed, fastapi treats it as text/plain
+        ("application/foo/bar+json", b'{"stdin": "a"}'),
     ],
 )
 def test_non_json_rejected(client, content_type, body):

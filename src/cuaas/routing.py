@@ -1,5 +1,6 @@
 """Strict JSON parsing for command routes."""
 
+import email.message
 import json
 import math
 from typing import TYPE_CHECKING, Any
@@ -20,9 +21,12 @@ _json = TypeAdapter(Any)
 
 def _is_json(content_type: str) -> bool:
     """Return whether a content-type header is JSON, like application/*+json."""
-    mime = content_type.partition(";")[0].strip().lower()
-    return mime == "application/json" or (
-        mime.startswith("application/") and mime.endswith("+json")
+    # parsed the same way fastapi does, so we agree on what counts as JSON
+    message = email.message.Message()
+    message["content-type"] = content_type
+    subtype = message.get_content_subtype()
+    return message.get_content_maintype() == "application" and (
+        subtype == "json" or subtype.endswith("+json")
     )
 
 
