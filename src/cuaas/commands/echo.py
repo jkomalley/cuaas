@@ -4,6 +4,7 @@ from fastapi import APIRouter
 from pydantic import Field
 
 from cuaas.models import CommandRequest, CommandResponse
+from cuaas.routing import StrictJSONRoute
 
 
 class EchoRequest(CommandRequest):
@@ -13,7 +14,7 @@ class EchoRequest(CommandRequest):
     no_newline: bool = False
 
 
-router = APIRouter()
+router = APIRouter(route_class=StrictJSONRoute)
 
 
 @router.post("/echo")

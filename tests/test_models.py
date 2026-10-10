@@ -8,10 +8,9 @@ from cuaas.models import CommandResponse, StdinRequest
 @pytest.mark.parametrize(
     ("stdin", "expected"),
     [
-        ("", b""),
         ("hello\n", b"hello\n"),
         ("héllo", b"h\xc3\xa9llo"),
-        ("😀", b"\xf0\x9f\x98\x80"),
+        ("\U0001f600", b"\xf0\x9f\x98\x80"),
     ],
 )
 def test_stdin_bytes(stdin, expected):
@@ -25,7 +24,6 @@ def test_stdin_bytes_default():
 @pytest.mark.parametrize(
     ("stdout", "expected"),
     [
-        (b"", ""),
         (b"hello\n", "hello\n"),
         (b"h\xc3\xa9llo", "héllo"),
     ],

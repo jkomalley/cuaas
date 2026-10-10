@@ -3,6 +3,7 @@
 from fastapi import APIRouter
 
 from cuaas.models import CommandResponse, StdinRequest
+from cuaas.routing import StrictJSONRoute
 
 
 class WcRequest(StdinRequest):
@@ -14,7 +15,7 @@ class WcRequest(StdinRequest):
     bytes: bool = False
 
 
-router = APIRouter()
+router = APIRouter(route_class=StrictJSONRoute)
 
 
 @router.post("/wc")
