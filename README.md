@@ -1,68 +1,10 @@
 # cuaas
 Coreutils as a service
 
-## Usage
+Real GNU coreutils behind an API. For anyone who lost theirs (Ubuntu switched to the Rust ones)
+or never had them (Windows).
 
-Run:
-
-```sh
-uv run fastapi run
-```
-
-Then in another shell run:
-
-```sh
-# echo -n hello world
-curl -X POST localhost:8000/echo \
-  -H 'content-type: application/json' \
-  -d '{"args": ["hello", "world"], "no_newline": true}'
-```
-
-```json
-{"stdout": "hello world", "stderr": "", "stdout_encoding": "utf-8", "exit_code": 0}
-```
-
-## Errors
-
-Bad JSON or a bad value gets a 422 from pydantic:
-
-```sh
-# wc with a number instead of text
-curl -X POST localhost:8000/wc \
-  -H 'content-type: application/json' \
-  -d '{"stdin": 5}' \
-  -w '\n%{http_code}\n'
-```
-
-```
-{"detail":[{"type":"string_type","loc":["body","stdin"],"msg":"Input should be a valid string","input":5}]}
-422
-```
-
-If the command ran it's a 200, even if it failed. Check `exit_code` and `stderr`.
-
-`NaN`, `Infinity` and lone surrogates like `"\ud800"` get a 422 too.
-
-A body without a JSON content-type gets a 415, so don't forget the `-H` with curl.
-
-## Binary
-
-JSON can only hold text, so send bytes as base64 with `stdin_encoding`:
-
-```sh
-# printf '\xff\xfe' | wc -c
-curl -X POST localhost:8000/wc \
-  -H 'content-type: application/json' \
-  -d '{"stdin": "//4=", "stdin_encoding": "base64", "bytes": true}'
-```
-
-```json
-{"stdout": "2\n", "stderr": "", "stdout_encoding": "utf-8", "exit_code": 0}
-```
-
-Line breaks are fine, so `base64` output works as is. Anything else that isn't base64 is a 422.
-
-If stdout isn't valid UTF-8 it comes back as base64 with `"stdout_encoding": "base64"`.
+Starting over. The old python reimplementation is tagged `python-reimpl`.
 
 ## Development
 
