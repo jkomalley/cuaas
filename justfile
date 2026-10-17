@@ -27,3 +27,19 @@ fix:
 
 # lint and test, same as ci
 check: lint test
+
+# create or start the dev vm, repo mounted read-only at the same path
+vm-up:
+    if limactl list -q | grep -qx cuaas; then limactl start cuaas; else limactl start --yes --name=cuaas --mount-only "{{ justfile_directory() }}" lima/cuaas.yaml; fi
+
+# shell in the dev vm, in the repo
+vm-shell:
+    limactl shell --workdir "{{ justfile_directory() }}" cuaas
+
+# stop the dev vm
+vm-stop:
+    limactl stop cuaas
+
+# delete the dev vm
+vm-rm:
+    limactl delete --force cuaas

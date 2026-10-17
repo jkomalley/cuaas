@@ -1,0 +1,48 @@
+# dev vm: ubuntu 24.04 with lxd. start with `just vm-up`, not limactl directly,
+# that's where the repo mount comes from
+minimumLimaVersion: 2.0.0
+base: template:ubuntu-24.04
+
+cpus: 4
+memory: 4GiB
+disk: 30GiB
+
+containerd:
+  system: false
+  user: false
+
+provision:
+  # runs as root on every boot, so everything checks before it acts
+  - mode: system
+    script: |
+      #!/bin/bash
+      set -eux -o pipefail
+      snap wait system seed.loaded
+      snap list lxd >/dev/null 2>&1 || snap install lxd --channel=5.21/stable
+      usermod -aG lxd "{{.User}}"
+      lxd waitready
+      # not --auto: lima's network answers ping for every ip, so lxd thinks every
+      # subnet is taken. btrfs, the default dir pool copies the whole rootfs per container
+      lxc storage show default >/dev/null 2>&1 || lxd init --preseed <<'EOF'
+      networks:
+        - name: lxdbr0
+          type: bridge
+          config:
+            ipv4.address: 10.64.64.1/24
+            ipv4.nat: "true"
+            ipv6.address: none
+      storage_pools:
+        - name: default
+          driver: btrfs
+      profiles:
+        - name: default
+          devices:
+            root:
+              type: disk
+              path: /
+              pool: default
+            eth0:
+              type: nic
+              name: eth0
+              network: lxdbr0
+      EOF
