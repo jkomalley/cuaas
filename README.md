@@ -1,10 +1,7 @@
 # cuaas
 Coreutils as a service
 
-Real GNU coreutils behind an API. For anyone who lost theirs (Ubuntu switched to the Rust ones)
-or never had them (Windows).
-
-Starting over. The old python reimplementation is tagged `python-reimpl`.
+GNU coreutils behind an API.
 
 ## Development
 
