@@ -1,57 +1,50 @@
 #!/bin/bash
-# builds the cuaas lxd image: ubuntu 26.04, bwrap, gnu coreutils jail, the api.
-# run in the dev vm with `just build-image`
+# builds the cuaas lxd image: ubuntu 26.04, image/provision.sh, the api.
+# needs host/setup.sh first. run on linux, `just build-image`
 set -euo pipefail
 
 BUILD=cuaas-build
 repo=$(cd "$(dirname "$0")/.." && pwd)
+# shellcheck source=scripts/lxc.sh
+source "$repo/scripts/lxc.sh"
 
-run() { lxc exec "$BUILD" -- "$@"; }
+run() { lxc_t 600 exec "$BUILD" -- "$@"; }
 
-lxc delete --force "$BUILD" 2>/dev/null || true
-trap 'lxc delete --force "$BUILD" >/dev/null 2>&1 || true' EXIT
-lxc launch ubuntu:26.04 "$BUILD"
+# fetch the base on its own, so a slow download isn't mistaken for a stalled launch
+lxc_t 30 image show ubuntu-26.04 >/dev/null 2>&1 \
+  || lxc_t 900 image copy ubuntu:26.04 local: --alias ubuntu-26.04
+
+lxc_t 60 delete --force "$BUILD" 2>/dev/null || true
+trap 'lxc_t 60 delete --force "$BUILD" >/dev/null 2>&1 || true' EXIT
+# the default profile, the build needs network
+launch ubuntu-26.04 "$BUILD"
 run cloud-init status --wait >/dev/null
 
-run env DEBIAN_FRONTEND=noninteractive apt-get update -qq
-run env DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends bubblewrap python3-venv
-
-# jail: gnu coreutils and their libs, plus the C.utf8 locale so LC_ALL=C.UTF-8
-# works (without it glibc quietly falls back to C). the chisel snap can only write
-# in $HOME, so cut there and move it. bwrap can't mkdir mount points in a read-only
-# root, so they have to exist already
-run bash -euo pipefail -c '
-  snap wait system seed.loaded
-  snap install chisel
-  mkdir /root/jail
-  chisel cut --release ubuntu-26.04 --root /root/jail coreutils-from-gnu_bins libc-bin_locale
-  mv /root/jail /jail
-  mkdir /jail/dev /jail/proc /jail/tmp
-  snap remove --purge chisel
-'
-
-# app: only what uv needs to build it, no .venv or caches from the mac
-tar -C "$repo" --exclude=__pycache__ -cf - .python-version pyproject.toml uv.lock README.md src \
+# the app and provision.sh. only what uv needs to build it, no .venv or caches
+tar -C "$repo" --exclude=__pycache__ -cf - \
+  .python-version pyproject.toml uv.lock README.md src image/provision.sh \
   | run bash -c 'mkdir -p /opt/cuaas && tar -C /opt/cuaas --no-same-owner -xf -'
 
-# uv from pypi, in a throwaway venv since 26.04's python won't pip install system-wide.
-# uv is only needed for the sync. python goes under /opt so the service user can read it
+# same setup as the dev vm and ci, then the cutter isn't needed anymore
+run /opt/cuaas/image/provision.sh
+run bash -c 'snap remove --purge chisel && rm -rf /opt/cuaas/image'
+
+# python under /opt so the service user can read it, no cache left behind
 run bash -euo pipefail -c '
-  python3 -m venv /tmp/uv-venv
-  /tmp/uv-venv/bin/pip install -q --disable-pip-version-check uv
   cd /opt/cuaas
   UV_PYTHON_INSTALL_DIR=/opt/cuaas/python UV_CACHE_DIR=/tmp/uv-cache UV_COMPILE_BYTECODE=1 \
-    UV_LINK_MODE=copy /tmp/uv-venv/bin/uv sync --locked --no-dev
-  rm -rf /tmp/uv-venv /tmp/uv-cache
+    UV_LINK_MODE=copy uv sync --locked --no-dev --quiet
+  rm -rf /tmp/uv-cache
 '
 
-run useradd --system --no-create-home --shell /usr/sbin/nologin cuaas
-lxc file push "$repo/image/cuaas.service" "$BUILD/etc/systemd/system/cuaas.service"
-run systemctl enable cuaas
+lxc_t 60 file push "$repo/image/cuaas.service" "$BUILD/etc/systemd/system/cuaas.service"
+run systemctl enable --quiet cuaas
+# containers from the image have no network, nothing for cloud-init to do
+run touch /etc/cloud/cloud-init.disabled
 
-lxc stop "$BUILD"
+lxc_t 120 stop "$BUILD"
 # publish under a temp alias first, so a failed publish keeps the old image
-lxc image delete cuaas-new 2>/dev/null || true
-lxc publish "$BUILD" --alias cuaas-new
-lxc image delete cuaas 2>/dev/null || true
-lxc image alias rename cuaas-new cuaas
+lxc_t 60 image delete cuaas-new 2>/dev/null || true
+lxc_t 900 publish -q "$BUILD" --alias cuaas-new
+lxc_t 60 image delete cuaas 2>/dev/null || true
+lxc_t 60 image alias rename cuaas-new cuaas
