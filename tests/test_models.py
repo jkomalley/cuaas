@@ -25,6 +25,18 @@ def test_args_with_nul_point_at_the_arg():
     assert error["loc"] == ("args", 1)
 
 
+@pytest.mark.parametrize(
+    ("kwargs", "loc"),
+    [({"stdin": "a\ud800"}, ("stdin",)), ({"args": ["ok", "\udc00"]}, ("args", 1))],
+)
+def test_lone_surrogates_rejected(kwargs, loc):
+    with pytest.raises(ValidationError) as e:
+        CommandRequest(**kwargs)
+    error = e.value.errors()[0]
+    assert error["type"] == "string_unicode"
+    assert error["loc"] == loc
+
+
 def test_args_must_be_strings():
     with pytest.raises(ValidationError):
         CommandRequest.model_validate({"args": [1]})

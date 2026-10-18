@@ -24,6 +24,18 @@ def _b64decode(data: str) -> bytes:
     return base64.b64decode(data.replace("\r", "").replace("\n", ""), validate=True)
 
 
+def _utf8(value: str) -> str:
+    """Reject lone surrogates, they can't be encoded as utf-8 later."""
+    # routing already rejects them in json, this covers anything built another way
+    try:
+        value.encode()
+    except UnicodeEncodeError as e:
+        error_type = "string_unicode"
+        msg = "String should be valid unicode"
+        raise PydanticCustomError(error_type, msg) from e
+    return value
+
+
 def _no_nul(arg: str) -> str:
     """Reject NUL bytes, exec can't pass them."""
     if "\0" in arg:
@@ -48,10 +60,10 @@ class CommandRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     # everything after the command name, never parsed by a shell
-    args: list[Annotated[str, AfterValidator(_no_nul)]] = []
+    args: list[Annotated[str, AfterValidator(_utf8), AfterValidator(_no_nul)]] = []
     # before stdin, so the validator can see it
     stdin_encoding: Encoding = "utf-8"
-    stdin: str = ""
+    stdin: Annotated[str, AfterValidator(_utf8)] = ""
 
     @field_validator("stdin")
     @classmethod
@@ -70,8 +82,7 @@ class CommandRequest(BaseModel):
     @property
     def stdin_bytes(self) -> bytes:
         """Return stdin as bytes, decoding base64 if stdin_encoding says so."""
-        # never raises, the validator already checked the base64 and routing
-        # rejects lone surrogates
+        # never raises, the validators already checked the base64 and the utf-8
         if self.stdin_encoding == "base64":
             return _b64decode(self.stdin)
         return self.stdin.encode()
