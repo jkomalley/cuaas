@@ -78,7 +78,12 @@ def parse_status(status: str) -> int | None:
     # so take the last one in case anything before it isn't bwrap's
     exit_code = None
     for line in reversed(status.splitlines()):
-        if line.strip() and "exit-code" in (obj := json.loads(line)):
+        try:
+            obj = json.loads(line)
+        except ValueError:
+            # empty, torn if bwrap died mid-write, or not bwrap's
+            continue
+        if isinstance(obj, dict) and "exit-code" in obj:
             exit_code = obj["exit-code"]
             break
     return exit_code

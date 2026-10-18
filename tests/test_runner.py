@@ -72,6 +72,19 @@ def test_parse_status_takes_the_last_exit_code():
     assert parse_status(f'{CHILD}{{ "exit-code": 0 }}\n{{ "exit-code": 3 }}\n') == 3
 
 
+def test_parse_status_torn_line():
+    # bwrap killed halfway through writing
+    assert parse_status('{ "child-pid": 7, "cgr') is None
+
+
+def test_parse_status_not_an_object():
+    assert parse_status("5\n") is None
+
+
+def test_parse_status_skips_junk():
+    assert parse_status(f'junk\n{CHILD}{{ "exit-code": 2 }}\n[1]\nmore junk') == 2
+
+
 def test_fake_echoes_stdin_and_records_calls():
     fake = FakeRunner()
     result = asyncio.run(fake.run(["cat"], b"hi\n"))
