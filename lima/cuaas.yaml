@@ -34,6 +34,9 @@ provision:
       storage_pools:
         - name: default
           driver: btrfs
+          # lxd's default loop file is 5GiB, full after a couple of images
+          config:
+            size: 20GiB
       profiles:
         - name: default
           devices:
