@@ -120,7 +120,7 @@ def test_sandbox_error_is_500_without_details(client, caplog):
     try:
         response = client.post("/wc", json={})
     finally:
-        app.dependency_overrides.clear()
+        app.dependency_overrides.pop(runner_dep, None)
     assert response.status_code == 500
     assert response.json() == {"detail": "Sandbox error"}
     # the real error is only in the log

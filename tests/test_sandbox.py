@@ -121,7 +121,7 @@ def api(client):
     """The test client, running commands in the real sandbox."""
     app.dependency_overrides[runner_dep] = BwrapRunner
     yield client
-    app.dependency_overrides.clear()
+    app.dependency_overrides.pop(runner_dep, None)
 
 
 def test_api_wc(api):

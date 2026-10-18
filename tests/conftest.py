@@ -24,4 +24,4 @@ def fake():
     runner = FakeRunner()
     app.dependency_overrides[runner_dep] = lambda: runner
     yield runner
-    app.dependency_overrides.clear()
+    app.dependency_overrides.pop(runner_dep, None)
