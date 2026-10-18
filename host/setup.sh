@@ -4,6 +4,9 @@
 # usage: host/setup.sh [STORAGE]
 #   STORAGE is a block device or a btrfs mount for the pool, a loop file if left out
 set -euo pipefail
+# lxc reads yaml from stdin when it isn't a terminal and waits for eof, which
+# never comes under just or limactl shell. nothing here needs stdin
+exec </dev/null
 
 here=$(cd "$(dirname "$0")" && pwd)
 storage=${1:-}

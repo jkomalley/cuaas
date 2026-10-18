@@ -17,17 +17,12 @@ lxc_t() {
   return "$rc"
 }
 
-# launch IMAGE NAME [ARGS...], retrying once if lxd stalls. it has been seen
-# sitting on a launch for minutes, then going through fine on a retry
+# launch IMAGE NAME [ARGS...]. lxc launch reads instance config from stdin when
+# it isn't a terminal, and under just or limactl shell that's a pipe that never
+# closes, so it waited forever. that was the lxd "stall"
 launch() {
-  local image=$1 name=$2 rc=0
+  local image=$1 name=$2
   shift 2
-  lxc_t 60 launch -q "$image" "$name" "$@" || rc=$?
-  if [[ $rc == 124 ]]; then
-    echo "retrying the launch of $name" >&2
-    lxc_t 60 delete --force "$name" >/dev/null 2>&1 || true
-    lxc_t 60 launch -q "$image" "$name" "$@"
-  else
-    return "$rc"
-  fi
+  lxc_t 60 launch -q "$image" "$name" "$@" </dev/null
 }
+

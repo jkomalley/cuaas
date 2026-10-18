@@ -2,6 +2,9 @@
 # builds the cuaas lxd image: ubuntu 26.04, image/provision.sh, the api.
 # needs host/setup.sh first. run on linux, `just build-image`
 set -euo pipefail
+# lxc reads yaml from stdin when it isn't a terminal and waits for eof, which
+# never comes under just or limactl shell. nothing here needs stdin
+exec </dev/null
 
 BUILD=cuaas-build
 repo=$(cd "$(dirname "$0")/.." && pwd)
