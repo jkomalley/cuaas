@@ -28,6 +28,7 @@ def test_bwrap_argv_sandbox_flags():
     assert "--json-status-fd 5" in joined
     assert "--setenv LC_ALL C.UTF-8" in joined
     assert "--argv0 wc --" in joined
+    assert "--chdir /" in joined
     for flag in ["--unshare-all", "--die-with-parent", "--new-session", "--clearenv"]:
         assert flag in argv
 

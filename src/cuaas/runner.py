@@ -60,6 +60,8 @@ def bwrap_argv(argv: Sequence[str], status_fd: int) -> list[str]:
         # nothing from our env. C.UTF-8 so wc -m and friends see utf-8 chars
         "--clearenv",
         "--setenv", "LC_ALL", "C.UTF-8",
+        # same cwd wherever the server runs, bwrap keeps ours if the jail has that path
+        "--chdir", "/",
         # bwrap writes the exit code here, only if the command actually ran
         "--json-status-fd", str(status_fd),
         # gnu prints argv[0] in errors and --help, a shell would say wc not /usr/bin/wc

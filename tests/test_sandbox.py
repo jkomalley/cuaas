@@ -61,6 +61,12 @@ def test_env_is_only_ours():
     assert sorted(run(["env"]).stdout.splitlines()) == [b"LC_ALL=C.UTF-8", b"PWD=/"]
 
 
+def test_cwd_is_root(monkeypatch):
+    # /usr/bin is in the jail too, so without --chdir bwrap would stay there
+    monkeypatch.chdir("/usr/bin")
+    assert run(["pwd"]).stdout == b"/\n"
+
+
 def test_root_is_read_only():
     result = run(["touch", "/x"])
     assert result.exit_code == 1
