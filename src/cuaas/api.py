@@ -6,6 +6,7 @@ from fastapi import APIRouter, Body, Depends, Request
 
 from cuaas.allowlist import ALLOWED
 from cuaas.models import CommandRequest, CommandResponse
+from cuaas.routing import StrictJSONRoute
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
@@ -33,7 +34,8 @@ def _endpoint(cmd: str) -> Callable[..., Awaitable[CommandResponse]]:
     return run
 
 
-router = APIRouter()
+# strict json: lone surrogates, inf/nan and non-json bodies are a 422 or 415
+router = APIRouter(route_class=StrictJSONRoute)
 # a route per command instead of /{cmd}, so anything else is fastapi's own 404
 # and the docs list every command
 for cmd in sorted(ALLOWED):

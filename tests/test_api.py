@@ -3,18 +3,7 @@ import base64
 import pytest
 
 from cuaas.allowlist import ALLOWED
-from cuaas.api import runner_dep
-from cuaas.main import app
-from cuaas.runner import FakeRunner, Result
-
-
-@pytest.fixture
-def fake():
-    """A fresh fake runner for one test, so its calls can be checked."""
-    runner = FakeRunner()
-    app.dependency_overrides[runner_dep] = lambda: runner
-    yield runner
-    app.dependency_overrides.clear()
+from cuaas.runner import Result
 
 
 def test_args_and_stdin_reach_the_runner(client, fake):
