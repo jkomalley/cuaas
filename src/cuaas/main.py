@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 from fastapi import FastAPI
 
+from cuaas.api import router
 from cuaas.runner import check_gnu, get_runner
 
 if TYPE_CHECKING:
@@ -25,3 +26,4 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
 
 
 app = FastAPI(lifespan=lifespan)
+app.include_router(router)

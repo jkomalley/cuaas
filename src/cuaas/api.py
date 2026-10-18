@@ -1,0 +1,40 @@
+"""POST /{cmd} for every allowed command."""
+
+from typing import TYPE_CHECKING, Annotated
+
+from fastapi import APIRouter, Body, Depends, Request
+
+from cuaas.allowlist import ALLOWED
+from cuaas.models import CommandRequest, CommandResponse
+
+if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable
+
+    from cuaas.runner import Runner
+
+
+def runner_dep(request: Request) -> Runner:
+    """Return the app's runner, tests override this."""
+    return request.app.state.runner
+
+
+def _endpoint(cmd: str) -> Callable[..., Awaitable[CommandResponse]]:
+    """Return the handler for one command."""
+
+    async def run(
+        runner: Annotated[Runner, Depends(runner_dep)],
+        # no body at all is the same as {}, so `curl -X POST /true` works
+        body: Annotated[CommandRequest | None, Body()] = None,
+    ) -> CommandResponse:
+        body = body or CommandRequest()
+        result = await runner.run([cmd, *body.args], body.stdin_bytes)
+        return CommandResponse.from_result(result)
+
+    return run
+
+
+router = APIRouter()
+# a route per command instead of /{cmd}, so anything else is fastapi's own 404
+# and the docs list every command
+for cmd in sorted(ALLOWED):
+    router.add_api_route(f"/{cmd}", _endpoint(cmd), methods=["POST"], name=cmd)
