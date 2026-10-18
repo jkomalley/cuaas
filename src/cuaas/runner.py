@@ -73,9 +73,10 @@ def parse_status(status: str) -> int | None:
     # one json object per line. the exit code comes last, after the command exits,
     # so take the last one in case anything before it isn't bwrap's
     exit_code = None
-    for line in status.splitlines():
-        if line.strip():
-            exit_code = json.loads(line).get("exit-code", exit_code)
+    for line in reversed(status.splitlines()):
+        if line.strip() and "exit-code" in (obj := json.loads(line)):
+            exit_code = obj["exit-code"]
+            break
     return exit_code
 
 
