@@ -37,7 +37,9 @@ def test_exit_code_passes_through():
 def test_stderr_passes_through():
     result = run(["wc", "--bogus"])
     assert result.exit_code == 1
-    assert b"unrecognized option" in result.stderr
+    # wc, not /usr/bin/wc, like in a shell
+    want = b"wc: unrecognized option '--bogus'\nTry 'wc --help'"
+    assert result.stderr.startswith(want)
 
 
 def test_no_shell_is_a_sandbox_error():

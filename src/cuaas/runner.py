@@ -62,6 +62,8 @@ def bwrap_argv(argv: Sequence[str], status_fd: int) -> list[str]:
         "--setenv", "LC_ALL", "C.UTF-8",
         # bwrap writes the exit code here, only if the command actually ran
         "--json-status-fd", str(status_fd),
+        # gnu prints argv[0] in errors and --help, a shell would say wc not /usr/bin/wc
+        "--argv0", cmd,
         # everything after -- is the command, never bwrap options
         "--", f"/usr/bin/{cmd}", *argv[1:],
     ]
