@@ -11,12 +11,12 @@ default:
 test *args:
     uv run pytest -m "not sandbox and not deploy" "$@"
 
-# sandbox tests with real bwrap, in the vm. extra args go to pytest
+# sandbox tests with bwrap, in the vm. extra args go to pytest
 [linux]
 test-sandbox *args:
     CUAAS_SANDBOX=1 uv run pytest -m sandbox "$@"
 
-# sandbox tests with real bwrap, in the vm. extra args go to pytest
+# sandbox tests with bwrap, in the vm. extra args go to pytest
 [macos]
 test-sandbox *args:
     {{ vm }} just test-sandbox "$@"
@@ -34,12 +34,12 @@ test-deploy *args:
 # unit, sandbox and deploy tests, what ci runs
 test-all: test test-sandbox test-deploy
 
-# the api with real bwrap in the vm, on localhost:8000, reloads
+# the api in the vm, on localhost:8000, reloads
 [linux]
 dev:
     uv run fastapi dev
 
-# the api with real bwrap in the vm, on localhost:8000, reloads
+# the api in the vm, on localhost:8000, reloads
 [macos]
 dev:
     {{ vm }} just dev

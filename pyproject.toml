@@ -41,6 +41,6 @@ ignore = [
 
 [tool.pytest.ini_options]
 markers = [
-    "sandbox: needs real bwrap and /jail, run with `just test-sandbox`",
+    "sandbox: needs bwrap and /jail, run with `just test-sandbox`",
     "deploy: needs the image launched like on the vps, run with `just test-deploy`",
 ]

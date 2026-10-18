@@ -1,4 +1,4 @@
-"""Real sandbox tests, need bwrap and /jail. `just test-sandbox` runs them in the vm."""
+"""Sandbox tests, need bwrap and /jail. `just test-sandbox` runs them in the vm."""
 
 import asyncio
 import base64
