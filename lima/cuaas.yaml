@@ -1,7 +1,7 @@
-# dev vm: ubuntu 24.04 with lxd. start with `just vm-up`, not limactl directly,
+# dev vm: ubuntu 26.04 with lxd. start with `just vm-up`, not limactl directly,
 # that's where the repo mount comes from
 minimumLimaVersion: 2.0.0
-base: template:ubuntu-24.04
+base: template:ubuntu-26.04
 
 cpus: 4
 memory: 4GiB
