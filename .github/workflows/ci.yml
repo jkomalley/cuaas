@@ -6,13 +6,15 @@ on:
   pull_request:
 
 jobs:
-  check:
-    runs-on: ubuntu-latest
+  test:
+    # same release as the dev vm and the image
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10.2.0 # no floating major tag, pin the release
-        with:
-          enable-cache: true
       - uses: extractions/setup-just@v4
+      # bwrap, the jail, the cuaas user and uv, same as the dev vm
+      - run: sudo image/provision.sh
       - run: uv sync --locked
-      - run: just check
+      - run: just lint
+      - run: just test
+      - run: just test-sandbox
