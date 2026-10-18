@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from cuaas.allowlist import ALLOWED
 from cuaas.runner import BWRAP, JAIL, BwrapRunner, SandboxError, check_gnu
 
 # set by image/test.sh, a broken image fails instead of skipping everything
@@ -99,3 +100,11 @@ def test_concurrent_runs():
         return [r.stdout for r in results]
 
     assert asyncio.run(many()) == [f"{n}\n".encode() for n in range(20)]
+
+
+@pytest.mark.parametrize("cmd", sorted(ALLOWED))
+def test_allowed_is_in_the_jail_and_gnu(cmd):
+    assert (Path(JAIL) / "usr/bin" / cmd).is_file()
+    # gnu test only answers --version as [
+    if cmd != "test":
+        assert b"(GNU coreutils)" in run([cmd, "--version"]).stdout
