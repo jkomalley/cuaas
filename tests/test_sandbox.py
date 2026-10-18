@@ -164,10 +164,10 @@ def test_api_false_is_200_exit_1(api):
 
 
 def test_api_bad_flag(api):
-    r = api.post("/sort", json={"args": ["--bogus"]})
+    r = api.post("/wc", json={"args": ["--bogus"]})
     assert r.status_code == 200
-    assert r.json()["exit_code"] == 2
-    assert r.json()["stderr"].startswith("sort: unrecognized option '--bogus'")
+    assert r.json()["exit_code"] == 1
+    assert r.json()["stderr"].startswith("wc: unrecognized option '--bogus'")
 
 
 def test_api_args_are_not_a_shell(api):
