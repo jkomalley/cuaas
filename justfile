@@ -4,11 +4,11 @@ default:
 
 # run the dev server with reload
 dev:
-    uv run fastapi dev
+    CUAAS_RUNNER=fake uv run fastapi dev
 
 # run the server
 run:
-    uv run fastapi run
+    CUAAS_RUNNER=fake uv run fastapi run
 
 # run tests, extra args go to pytest
 test *args:
