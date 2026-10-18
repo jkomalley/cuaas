@@ -9,6 +9,7 @@ from cuaas.runner import (
     FakeRunner,
     Result,
     bwrap_argv,
+    check_argv,
     check_gnu,
     get_runner,
     parse_status,
@@ -51,6 +52,21 @@ def test_bwrap_argv_rejects_empty_argv():
         bwrap_argv([], 5)
 
 
+@pytest.mark.parametrize("argv", [["wc", "a\0b"], ["wc\0"], ["wc", "-l", "\0"]])
+def test_check_argv_rejects_nul(argv):
+    with pytest.raises(ValueError, match="NUL byte"):
+        check_argv(argv)
+
+
+def test_check_argv_allows_empty_args():
+    check_argv(["wc", "-l", ""])
+
+
+def test_bwrap_argv_rejects_nul():
+    with pytest.raises(ValueError, match="NUL byte"):
+        bwrap_argv(["wc", "a\0b"], 5)
+
+
 CHILD = '{ "child-pid": 7, "mnt-namespace": 4026532458 }\n'
 
 
@@ -90,6 +106,14 @@ def test_fake_echoes_stdin_and_records_calls():
     result = asyncio.run(fake.run(["cat"], b"hi\n"))
     assert result == Result(b"hi\n", b"", 0)
     assert fake.calls == [(["cat"], b"hi\n")]
+
+
+@pytest.mark.parametrize("argv", [["sh/x"], [], ["wc", "a\0b"]])
+def test_fake_rejects_like_bwrap_and_records_nothing(argv):
+    fake = FakeRunner()
+    with pytest.raises(ValueError, match=r"not a command name|NUL byte"):
+        asyncio.run(fake.run(argv))
+    assert fake.calls == []
 
 
 def test_fake_returns_the_set_result():
