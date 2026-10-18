@@ -14,7 +14,7 @@ lxc launch -q cuaas "$TEST"
 run cloud-init status --wait >/dev/null
 
 # the code and tests from the repo, the jail and python from the image
-tar -C "$repo" --exclude=__pycache__ -cf - pyproject.toml uv.lock README.md src tests \
+tar -C "$repo" --exclude=__pycache__ -cf - .python-version pyproject.toml uv.lock README.md src tests \
   | run bash -c 'mkdir /opt/cuaas-test && tar -C /opt/cuaas-test --no-same-owner -xf - && chown -R cuaas: /opt/cuaas-test'
 
 # same uv bootstrap as the build

@@ -31,7 +31,7 @@ run bash -euo pipefail -c '
 '
 
 # app: only what uv needs to build it, no .venv or caches from the mac
-tar -C "$repo" --exclude=__pycache__ -cf - pyproject.toml uv.lock README.md src \
+tar -C "$repo" --exclude=__pycache__ -cf - .python-version pyproject.toml uv.lock README.md src \
   | run bash -c 'mkdir -p /opt/cuaas && tar -C /opt/cuaas --no-same-owner -xf -'
 
 # uv from pypi, in a throwaway venv since 26.04's python won't pip install system-wide.
