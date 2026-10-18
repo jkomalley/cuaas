@@ -7,17 +7,29 @@ vm := "limactl shell --workdir " + quote(justfile_directory()) + " cuaas"
 default:
     @just --list
 
-# api on the mac with the fake runner, reloads
-serve-fake:
-    CUAAS_RUNNER=fake uv run fastapi dev
-
-# run tests, extra args go to pytest
+# unit tests, no vm. extra args go to pytest
 test *args:
-    uv run pytest {{ args }}
+    uv run pytest -m "not sandbox" "$@"
 
-# run the sandbox tests in a container from the image, extra args go to pytest
+# sandbox tests with real bwrap, in the vm. extra args go to pytest
+[linux]
 test-sandbox *args:
-    limactl shell --workdir "{{ justfile_directory() }}" cuaas image/test.sh {{ args }}
+    CUAAS_SANDBOX=1 uv run pytest -m sandbox "$@"
+
+# sandbox tests with real bwrap, in the vm. extra args go to pytest
+[macos]
+test-sandbox *args:
+    {{ vm }} just test-sandbox "$@"
+
+# the api with real bwrap in the vm, on localhost:8000, reloads
+[linux]
+dev:
+    uv run fastapi dev
+
+# the api with real bwrap in the vm, on localhost:8000, reloads
+[macos]
+dev:
+    {{ vm }} just dev
 
 # check lint, formatting, and types
 lint:
@@ -30,7 +42,7 @@ fix:
     uv run ruff check --fix
     uv run ruff format
 
-# lint and test, same as ci
+# lint and unit tests, quick before a push
 check: lint test
 
 # create or start the dev vm, set it up, then vm-doctor

@@ -29,13 +29,12 @@ Needs [uv](https://docs.astral.sh/uv/) and [just](https://just.systems).
 
 ```sh
 uv sync
-just serve-fake  # http://127.0.0.1:8000/docs
 just test
 just fix         # fix lint and format
 just check       # lint + types + tests, same as ci
 ```
 
-`serve-fake` and `test` use a fake runner, no sandbox needed.
+`test` is the unit tests, no vm needed.
 
 ### Real sandbox
 
@@ -45,6 +44,7 @@ GNU coreutils jail.
 ```sh
 just vm-up          # create or start the vm
 just build-image    # build the lxd image
-just test-sandbox   # sandbox tests in a container from the image
+just test-sandbox   # sandbox tests with real bwrap, in the vm
+just dev            # the api in the vm, http://127.0.0.1:8000/docs
 just vm-shell       # shell in the vm
 ```
