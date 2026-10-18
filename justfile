@@ -53,10 +53,12 @@ vm-up:
     if limactl list -q | grep -qx cuaas; then
       limactl start cuaas
     else
+      limactl disk ls 2>/dev/null | grep -q '^cuaas-lxd ' || limactl disk create cuaas-lxd --size 20GiB
       limactl start --yes --name=cuaas --mount-only "{{ justfile_directory() }}:w" lima/cuaas.yaml
     fi
     {{ vm }} sudo image/provision.sh
     {{ vm }} sudo lima/setup.sh
+    {{ vm }} sudo host/setup.sh /mnt/lima-cuaas-lxd
     just vm-doctor
 
 # check the dev vm can run the sandbox, print fixes
@@ -77,10 +79,17 @@ vm-shell:
 vm-stop:
     limactl stop cuaas
 
-# build the lxd image in the dev vm
+# build the lxd image
+[linux]
 build-image:
-    limactl shell --workdir "{{ justfile_directory() }}" cuaas image/build.sh
+    image/build.sh
 
-# delete the dev vm
+# build the lxd image, in the vm
+[macos]
+build-image:
+    {{ vm }} just build-image
+
+# delete the dev vm and its lxd disk, vm-up builds a fresh one
 vm-rm:
     limactl delete --force cuaas
+    limactl disk delete cuaas-lxd 2>/dev/null || true
