@@ -9,7 +9,7 @@ default:
 
 # unit tests, no vm. extra args go to pytest
 test *args:
-    uv run pytest -m "not sandbox" "$@"
+    uv run pytest -m "not sandbox and not deploy" "$@"
 
 # sandbox tests with real bwrap, in the vm. extra args go to pytest
 [linux]
@@ -20,6 +20,19 @@ test-sandbox *args:
 [macos]
 test-sandbox *args:
     {{ vm }} just test-sandbox "$@"
+
+# build the image, launch it like on the vps, http tests. extra args go to pytest
+[linux]
+test-deploy *args:
+    scripts/test-deploy.sh "$@"
+
+# build the image, launch it like on the vps, http tests. extra args go to pytest
+[macos]
+test-deploy *args:
+    {{ vm }} just test-deploy "$@"
+
+# unit, sandbox and deploy tests, what ci runs
+test-all: test test-sandbox test-deploy
 
 # the api with real bwrap in the vm, on localhost:8000, reloads
 [linux]

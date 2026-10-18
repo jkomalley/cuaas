@@ -26,3 +26,16 @@ launch() {
   lxc_t 60 launch -q "$image" "$name" "$@" </dev/null
 }
 
+# booted NAME waits for systemd in NAME to finish booting, false if anything
+# failed. is-system-running can't answer until the container's system bus is
+# up, so ask again until it does
+booted() {
+  local name=$1 state=""
+  for _ in $(seq 60); do
+    state=$(lxc_t 150 exec "$name" -- systemctl is-system-running --wait 2>/dev/null) && return 0
+    case $state in "" | offline) sleep 1 ;; *) break ;; esac
+  done
+  echo "$name is ${state:-not answering}, failed units:" >&2
+  lxc_t 30 exec "$name" -- systemctl --failed --no-legend >&2 || true
+  return 1
+}

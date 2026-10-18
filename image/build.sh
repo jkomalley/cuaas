@@ -44,6 +44,8 @@ lxc_t 60 file push "$repo/image/cuaas.service" "$BUILD/etc/systemd/system/cuaas.
 run systemctl enable --quiet cuaas
 # containers from the image have no network, nothing for cloud-init to do
 run touch /etc/cloud/cloud-init.disabled
+# no console logins, and lxd 5.21 with 26.04 fails it at boot anyway
+run systemctl mask --quiet console-getty.service
 
 lxc_t 120 stop "$BUILD"
 # publish under a temp alias first, so a failed publish keeps the old image
