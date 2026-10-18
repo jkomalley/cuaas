@@ -5,13 +5,11 @@ import asyncio
 import pytest
 
 from cuaas.runner import (
-    BwrapRunner,
     FakeRunner,
     Result,
     bwrap_argv,
     check_argv,
     check_gnu,
-    get_runner,
     parse_status,
 )
 
@@ -136,19 +134,3 @@ def test_check_gnu_refuses_a_failed_run():
     fake = FakeRunner(Result(b"", b"wc: broken\n", 1))
     with pytest.raises(RuntimeError, match="wc: broken"):
         asyncio.run(check_gnu(fake))
-
-
-def test_get_runner_defaults_to_bwrap(monkeypatch):
-    monkeypatch.delenv("CUAAS_RUNNER", raising=False)
-    assert isinstance(get_runner(), BwrapRunner)
-
-
-def test_get_runner_fake(monkeypatch):
-    monkeypatch.setenv("CUAAS_RUNNER", "fake")
-    assert isinstance(get_runner(), FakeRunner)
-
-
-def test_get_runner_rejects_junk(monkeypatch):
-    monkeypatch.setenv("CUAAS_RUNNER", "docker")
-    with pytest.raises(ValueError, match="docker"):
-        get_runner()

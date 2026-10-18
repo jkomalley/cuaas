@@ -156,19 +156,6 @@ class FakeRunner:
         return Result(stdout=stdin, stderr=b"", exit_code=0)
 
 
-def get_runner() -> Runner:
-    """Return the runner CUAAS_RUNNER names, bwrap by default."""
-    # bwrap by default, so a server missing the setting fails check_gnu loudly
-    # instead of quietly faking
-    name = os.environ.get("CUAAS_RUNNER", "bwrap")
-    if name == "bwrap":
-        return BwrapRunner()
-    if name == "fake":
-        return FakeRunner()
-    msg = f"CUAAS_RUNNER must be bwrap or fake, not {name!r}"
-    raise ValueError(msg)
-
-
 async def check_gnu(runner: Runner) -> str:
     """Return the coreutils version line, or raise if it isn't GNU."""
     result = await runner.run(["wc", "--version"])

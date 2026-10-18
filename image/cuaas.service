@@ -4,7 +4,6 @@ After=network.target
 
 [Service]
 User=cuaas
-Environment=CUAAS_RUNNER=bwrap
 WorkingDirectory=/opt/cuaas
 ExecStart=/opt/cuaas/.venv/bin/fastapi run
 Restart=on-failure

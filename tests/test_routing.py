@@ -3,9 +3,10 @@
 import json
 
 import pytest
+from fastapi.testclient import TestClient
 
-from cuaas.api import router, runner_dep
-from cuaas.main import app
+from cuaas.api import router
+from cuaas.main import create_app
 from cuaas.routing import StrictJSONRoute
 from cuaas.runner import SandboxError
 
@@ -115,12 +116,10 @@ class BrokenRunner:
         raise SandboxError(msg)
 
 
-def test_sandbox_error_is_500_without_details(client, caplog):
-    app.dependency_overrides[runner_dep] = BrokenRunner
-    try:
-        response = client.post("/wc", json={})
-    finally:
-        app.dependency_overrides.pop(runner_dep, None)
+def test_sandbox_error_is_500_without_details(caplog):
+    # no `with`, so startup's gnu check doesn't hit the broken runner
+    client = TestClient(create_app(BrokenRunner()))
+    response = client.post("/wc", json={})
     assert response.status_code == 500
     assert response.json() == {"detail": "Sandbox error"}
     # the real error is only in the log
