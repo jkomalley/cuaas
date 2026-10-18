@@ -1,7 +1,7 @@
 # Roadmap
 
 GNU coreutils behind an API. FastAPI runs in an LXD container, each request runs in a
-throwaway bwrap or nsjail sandbox over chiselled Ubuntu 24.04 coreutils. No shell.
+throwaway bwrap sandbox over chiselled GNU coreutils from Ubuntu 26.04. No shell.
 
 ## M1 Runner
 
