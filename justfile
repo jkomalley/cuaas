@@ -40,6 +40,10 @@ vm-shell:
 vm-stop:
     limactl stop cuaas
 
+# build the lxd image in the dev vm
+image:
+    limactl shell --workdir "{{ justfile_directory() }}" cuaas image/build.sh
+
 # delete the dev vm
 vm-rm:
     limactl delete --force cuaas

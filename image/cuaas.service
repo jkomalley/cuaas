@@ -1,0 +1,12 @@
+[Unit]
+Description=cuaas api
+After=network.target
+
+[Service]
+User=cuaas
+WorkingDirectory=/opt/cuaas
+ExecStart=/opt/cuaas/.venv/bin/fastapi run
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
