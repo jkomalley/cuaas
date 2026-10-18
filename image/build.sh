@@ -16,14 +16,15 @@ run cloud-init status --wait >/dev/null
 run env DEBIAN_FRONTEND=noninteractive apt-get update -qq
 run env DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends bubblewrap python3-venv
 
-# jail: gnu coreutils and their libs, nothing else. the chisel snap can only write
+# jail: gnu coreutils and their libs, plus the C.utf8 locale so LC_ALL=C.UTF-8
+# works (without it glibc quietly falls back to C). the chisel snap can only write
 # in $HOME, so cut there and move it. bwrap can't mkdir mount points in a read-only
 # root, so they have to exist already
 run bash -euo pipefail -c '
   snap wait system seed.loaded
   snap install chisel
   mkdir /root/jail
-  chisel cut --release ubuntu-26.04 --root /root/jail coreutils-from-gnu_bins
+  chisel cut --release ubuntu-26.04 --root /root/jail coreutils-from-gnu_bins libc-bin_locale
   mv /root/jail /jail
   mkdir /jail/dev /jail/proc /jail/tmp
   snap remove --purge chisel
