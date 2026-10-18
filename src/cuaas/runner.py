@@ -36,13 +36,24 @@ class Runner(Protocol):
         ...
 
 
-def bwrap_argv(argv: Sequence[str], status_fd: int) -> list[str]:
-    """Return the bwrap command line that runs argv in the jail."""
+def check_argv(argv: Sequence[str]) -> None:
+    """Raise ValueError if argv can't be run, same for every runner."""
     cmd = argv[0] if argv else ""
     # a bare name in the jail's /usr/bin, never a path. the allowlist is the real check
     if not cmd or "/" in cmd or cmd in {".", ".."}:
         msg = f"not a command name: {cmd!r}"
         raise ValueError(msg)
+    # exec can't pass them, subprocess would raise a vague "embedded null byte"
+    for i, arg in enumerate(argv):
+        if "\0" in arg:
+            msg = f"NUL byte in argv[{i}]"
+            raise ValueError(msg)
+
+
+def bwrap_argv(argv: Sequence[str], status_fd: int) -> list[str]:
+    """Return the bwrap command line that runs argv in the jail."""
+    check_argv(argv)
+    cmd = argv[0]
     # fmt: off
     return [
         BWRAP,
@@ -134,6 +145,8 @@ class FakeRunner:
 
     async def run(self, argv: Sequence[str], stdin: bytes = b"") -> Result:
         """Record the call, return result, a gnu --version, or stdin echoed."""
+        # same errors as bwrap, and a rejected call isn't recorded
+        check_argv(argv)
         self.calls.append((list(argv), stdin))
         if self.result is not None:
             return self.result

@@ -4,9 +4,11 @@ import logging
 from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 
-from cuaas.runner import check_gnu, get_runner
+from cuaas.api import router
+from cuaas.runner import SandboxError, check_gnu, get_runner
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
@@ -25,3 +27,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
 
 
 app = FastAPI(lifespan=lifespan)
+app.include_router(router)
+
+
+@app.exception_handler(SandboxError)
+async def sandbox_error(request: Request, exc: SandboxError) -> JSONResponse:
+    """Our fault, so a 500. bwrap's error goes in the log, not to the client."""
+    logger.error("sandbox error on %s: %s", request.url.path, exc)
+    return JSONResponse({"detail": "Sandbox error"}, status_code=500)

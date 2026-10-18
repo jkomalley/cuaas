@@ -1,0 +1,53 @@
+"""Which commands the api runs."""
+
+# text filters that work on stdin and args. left out: anything that hangs or
+# floods with no args at all (yes, sleep, seq, shuf -r, factor on a huge number),
+# anything that runs other commands (env, nice, nohup, timeout, stdbuf, runcon,
+# sort --compress-program) and anything that writes files (split, tee, cp, rm...).
+# not safe yet: args can still hang or flood, like cat /dev/zero or
+# printf %2000000000d, until there are timeouts and an output cap
+ALLOWED = frozenset(
+    {
+        "b2sum",
+        "base32",
+        "base64",
+        "basename",
+        "basenc",
+        "cat",
+        "cksum",
+        "comm",
+        "cut",
+        "dirname",
+        "echo",
+        "expand",
+        "expr",
+        "false",
+        "fmt",
+        "fold",
+        "head",
+        "join",
+        "md5sum",
+        "nl",
+        "numfmt",
+        "od",
+        "paste",
+        "pr",
+        "printf",
+        "ptx",
+        "sha1sum",
+        "sha224sum",
+        "sha256sum",
+        "sha384sum",
+        "sha512sum",
+        "sum",
+        "tac",
+        "tail",
+        "test",
+        "tr",
+        "true",
+        "tsort",
+        "unexpand",
+        "uniq",
+        "wc",
+    },
+)

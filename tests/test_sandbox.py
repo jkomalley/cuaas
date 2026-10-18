@@ -1,11 +1,15 @@
 """Real sandbox tests, run in a container from the image with `just test-sandbox`."""
 
 import asyncio
+import base64
 import os
 from pathlib import Path
 
 import pytest
 
+from cuaas.allowlist import ALLOWED
+from cuaas.api import runner_dep
+from cuaas.main import app
 from cuaas.runner import BWRAP, JAIL, BwrapRunner, SandboxError, check_gnu
 
 # set by image/test.sh, a broken image fails instead of skipping everything
@@ -99,3 +103,73 @@ def test_concurrent_runs():
         return [r.stdout for r in results]
 
     assert asyncio.run(many()) == [f"{n}\n".encode() for n in range(20)]
+
+
+@pytest.mark.parametrize("cmd", sorted(ALLOWED))
+def test_allowed_is_in_the_jail_and_gnu(cmd):
+    assert (Path(JAIL) / "usr/bin" / cmd).is_file()
+    # gnu test only answers --version as [
+    if cmd != "test":
+        assert b"(GNU coreutils)" in run([cmd, "--version"]).stdout
+
+
+# the api with bwrap behind it, same app the service runs
+
+
+@pytest.fixture
+def api(client):
+    """The test client, running commands in the real sandbox."""
+    app.dependency_overrides[runner_dep] = BwrapRunner
+    yield client
+    app.dependency_overrides.pop(runner_dep, None)
+
+
+def test_api_wc(api):
+    r = api.post("/wc", json={"args": ["-l"], "stdin": "a b c\nd e\n"})
+    assert r.status_code == 200
+    assert r.json() == {
+        "stdout": "2\n",
+        "stdout_encoding": "utf-8",
+        "stderr": "",
+        "stderr_encoding": "utf-8",
+        "exit_code": 0,
+    }
+
+
+def test_api_unicode_args(api):
+    r = api.post("/echo", json={"args": ["héllo", "\U0001f600"]})
+    assert r.json()["stdout"] == "héllo \U0001f600\n"
+
+
+def test_api_binary_through_cat(api):
+    data = bytes(range(256))
+    r = api.post(
+        "/cat",
+        json={"stdin": base64.b64encode(data).decode(), "stdin_encoding": "base64"},
+    )
+    assert r.json()["stdout_encoding"] == "base64"
+    assert base64.b64decode(r.json()["stdout"]) == data
+
+
+def test_api_invalid_utf8_out_is_base64(api):
+    r = api.post("/printf", json={"args": ["a\\xffb"]})
+    assert r.json()["stdout_encoding"] == "base64"
+    assert base64.b64decode(r.json()["stdout"]) == b"a\xffb"
+
+
+def test_api_false_is_200_exit_1(api):
+    r = api.post("/false")
+    assert r.status_code == 200
+    assert r.json()["exit_code"] == 1
+
+
+def test_api_bad_flag(api):
+    r = api.post("/wc", json={"args": ["--bogus"]})
+    assert r.status_code == 200
+    assert r.json()["exit_code"] == 1
+    assert r.json()["stderr"].startswith("wc: unrecognized option '--bogus'")
+
+
+def test_api_args_are_not_a_shell(api):
+    r = api.post("/echo", json={"args": ["$(id)", ";", "|", "*"]})
+    assert r.json()["stdout"] == "$(id) ; | *\n"
