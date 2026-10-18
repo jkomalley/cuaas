@@ -50,5 +50,8 @@ lxc file push "$repo/image/cuaas.service" "$BUILD/etc/systemd/system/cuaas.servi
 run systemctl enable cuaas
 
 lxc stop "$BUILD"
+# publish under a temp alias first, so a failed publish keeps the old image
+lxc image delete cuaas-new 2>/dev/null || true
+lxc publish "$BUILD" --alias cuaas-new
 lxc image delete cuaas 2>/dev/null || true
-lxc publish "$BUILD" --alias cuaas
+lxc image alias rename cuaas-new cuaas
