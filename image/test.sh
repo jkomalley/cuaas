@@ -1,6 +1,6 @@
 #!/bin/bash
 # runs the sandbox tests in a throwaway container from the cuaas image.
-# run in the dev vm with `just test-sandbox`, after `just image`. args go to pytest
+# run in the dev vm with `just test-sandbox`, after `just build-image`. args go to pytest
 set -euo pipefail
 
 TEST=cuaas-test

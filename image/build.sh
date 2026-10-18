@@ -1,6 +1,6 @@
 #!/bin/bash
 # builds the cuaas lxd image: ubuntu 26.04, bwrap, gnu coreutils jail, the api.
-# run in the dev vm with `just image`
+# run in the dev vm with `just build-image`
 set -euo pipefail
 
 BUILD=cuaas-build

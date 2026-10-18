@@ -24,7 +24,7 @@ GNU coreutils jail.
 
 ```sh
 just vm-up          # create or start the vm
-just image          # build the lxd image
+just build-image    # build the lxd image
 just test-sandbox   # sandbox tests in a container from the image
 just vm-shell       # shell in the vm
 ```
