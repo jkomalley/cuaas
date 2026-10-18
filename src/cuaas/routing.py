@@ -21,7 +21,8 @@ _json = TypeAdapter(Any)
 
 def _is_json(content_type: str) -> bool:
     """Return whether a content-type header is JSON, like application/*+json."""
-    # parsed the same way fastapi does, so we agree on what counts as JSON
+    # parsed the same way fastapi does. unlike fastapi, no header at all isn't
+    # json here, a body without one is a 415
     message = email.message.Message()
     message["content-type"] = content_type
     subtype = message.get_content_subtype()
