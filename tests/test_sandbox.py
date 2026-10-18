@@ -1,16 +1,20 @@
 """Real sandbox tests, run in a container from the image with `just test-sandbox`."""
 
 import asyncio
+import os
 from pathlib import Path
 
 import pytest
 
 from cuaas.runner import BWRAP, JAIL, BwrapRunner, SandboxError, check_gnu
 
+# set by image/test.sh, a broken image fails instead of skipping everything
+REQUIRED = os.environ.get("CUAAS_SANDBOX") == "1"
+
 pytestmark = [
     pytest.mark.sandbox,
     pytest.mark.skipif(
-        not (Path(BWRAP).exists() and Path(JAIL).is_dir()),
+        not REQUIRED and not (Path(BWRAP).exists() and Path(JAIL).is_dir()),
         reason="needs bwrap and /jail, see `just test-sandbox`",
     ),
 ]

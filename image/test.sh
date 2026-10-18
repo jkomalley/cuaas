@@ -25,5 +25,5 @@ run bash -euo pipefail -c '
 
 # as the unprivileged service user, so bwrap uses user namespaces like the service does
 run runuser -u cuaas -- env -C /opt/cuaas-test \
-  HOME=/tmp UV_PYTHON_INSTALL_DIR=/opt/cuaas/python UV_CACHE_DIR=/tmp/uv-cache UV_LINK_MODE=copy \
+  HOME=/tmp CUAAS_SANDBOX=1 UV_PYTHON_INSTALL_DIR=/opt/cuaas/python UV_CACHE_DIR=/tmp/uv-cache UV_LINK_MODE=copy \
   /tmp/uv-venv/bin/uv run --locked pytest -m sandbox "$@"
