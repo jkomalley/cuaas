@@ -2,13 +2,9 @@
 default:
     @just --list
 
-# run the dev server with reload
-dev:
+# api on the mac with the fake runner, reloads
+serve-fake:
     CUAAS_RUNNER=fake uv run fastapi dev
-
-# run the server
-run:
-    CUAAS_RUNNER=fake uv run fastapi run
 
 # run tests, extra args go to pytest
 test *args:

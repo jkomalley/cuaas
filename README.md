@@ -9,13 +9,13 @@ Needs [uv](https://docs.astral.sh/uv/) and [just](https://just.systems).
 
 ```sh
 uv sync
-just dev     # http://127.0.0.1:8000/docs
+just serve-fake  # http://127.0.0.1:8000/docs
 just test
-just fix     # fix lint and format
-just check   # lint + types + tests, same as ci
+just fix         # fix lint and format
+just check       # lint + types + tests, same as ci
 ```
 
-`dev` and `test` use a fake runner, no sandbox needed.
+`serve-fake` and `test` use a fake runner, no sandbox needed.
 
 ### Real sandbox
 
