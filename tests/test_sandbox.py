@@ -1,0 +1,89 @@
+"""Real sandbox tests, run in a container from the image with `just test-sandbox`."""
+
+import asyncio
+from pathlib import Path
+
+import pytest
+
+from cuaas.runner import BWRAP, JAIL, BwrapRunner, SandboxError, check_gnu
+
+pytestmark = [
+    pytest.mark.sandbox,
+    pytest.mark.skipif(
+        not (Path(BWRAP).exists() and Path(JAIL).is_dir()),
+        reason="needs bwrap and /jail, see `just test-sandbox`",
+    ),
+]
+
+
+def run(argv, stdin=b""):
+    return asyncio.run(BwrapRunner().run(argv, stdin))
+
+
+def test_wc_with_stdin():
+    result = run(["wc", "-l"], b"a b c\nd e\n")
+    assert (result.stdout, result.stderr, result.exit_code) == (b"2\n", b"", 0)
+
+
+def test_it_is_gnu():
+    assert run(["wc", "--version"]).stdout.startswith(b"wc (GNU coreutils) 9.")
+    assert asyncio.run(check_gnu(BwrapRunner())).startswith("wc (GNU coreutils)")
+
+
+def test_exit_code_passes_through():
+    assert run(["false"]).exit_code == 1
+
+
+def test_stderr_passes_through():
+    result = run(["wc", "--bogus"])
+    assert result.exit_code == 1
+    assert b"unrecognized option" in result.stderr
+
+
+def test_no_shell_is_a_sandbox_error():
+    with pytest.raises(SandboxError, match="execvp"):
+        run(["sh", "-c", "id"])
+
+
+def test_bytes_pass_through_unchanged():
+    data = bytes(range(256)) * 4
+    assert run(["cat"], data).stdout == data
+
+
+def test_utf8_locale():
+    # 2 in C.UTF-8, 3 if the locale silently fell back to C
+    assert run(["wc", "-m"], "é\n".encode()).stdout == b"2\n"
+
+
+def test_env_is_only_ours():
+    assert sorted(run(["env"]).stdout.splitlines()) == [b"LC_ALL=C.UTF-8", b"PWD=/"]
+
+
+def test_root_is_read_only():
+    result = run(["touch", "/x"])
+    assert result.exit_code == 1
+    assert b"Read-only file system" in result.stderr
+
+
+def test_tmp_is_writable():
+    assert run(["touch", "/tmp/x"]).exit_code == 0  # noqa: S108, the sandbox's tmpfs
+
+
+def test_killed_shows_as_128_plus_signal():
+    # timeout kills sleep with SIGKILL and exits 128 + 9 itself
+    assert run(["timeout", "-s", "KILL", "0.1", "sleep", "5"]).exit_code == 137
+
+
+def test_command_that_stops_reading_stdin_early():
+    # head exits after one byte, writing the rest of stdin hits EPIPE
+    assert run(["head", "-c1"], b"\0" * 10_000_000).stdout == b"\0"
+
+
+def test_concurrent_runs():
+    async def many():
+        runner = BwrapRunner()
+        inputs = [b"x" * n for n in range(20)]
+        results = await asyncio.gather(*(runner.run(["wc", "-c"], i) for i in inputs))
+        return [r.stdout for r in results]
+
+    assert asyncio.run(many()) == [f"{n}\n".encode() for n in range(20)]

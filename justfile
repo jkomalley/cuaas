@@ -14,6 +14,10 @@ run:
 test *args:
     uv run pytest {{ args }}
 
+# run the sandbox tests in a container from the image, extra args go to pytest
+test-sandbox *args:
+    limactl shell --workdir "{{ justfile_directory() }}" cuaas image/test.sh {{ args }}
+
 # check lint, formatting, and types
 lint:
     uv run ruff check
