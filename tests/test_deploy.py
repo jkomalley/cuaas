@@ -1,8 +1,10 @@
 """Deploy tests: the prod image launched like on the vps. Run via `just test-deploy`."""
 
 import base64
+import json
 import os
 import subprocess
+from concurrent.futures import ThreadPoolExecutor
 
 import httpx2
 import pytest
@@ -58,6 +60,49 @@ def test_utf8_locale(api):
 
 def test_unknown_command_is_404(api):
     assert api.post("/env", json={}).status_code == 404
+
+
+def test_host_fs_not_visible(api):
+    r = api.post("/cat", json={"args": ["/opt/cuaas/pyproject.toml"]}).json()
+    assert r["exit_code"] == 1
+    assert "No such file" in r["stderr"]
+
+
+def test_concurrent_requests(api):
+    def wc(i):
+        return api.post("/wc", json={"args": ["-l"], "stdin": "x\n" * i})
+
+    with ThreadPoolExecutor(20) as pool:
+        responses = list(pool.map(wc, range(20)))
+    assert [r.status_code for r in responses] == [200] * 20
+    assert [r.json()["stdout"] for r in responses] == [f"{i}\n" for i in range(20)]
+
+
+# runs the installed BwrapRunner as cuaas, so the sandbox itself is checked
+# under lxcfs, the container's apparmor and the service user
+SANDBOX_CHECK = """
+import asyncio, json
+from cuaas.runner import BwrapRunner
+
+async def main():
+    out = []
+    for argv in (["touch", "/x"], ["touch", "/tmp/x"], ["env"]):
+        r = await BwrapRunner().run(argv)
+        out.append([r.exit_code, r.stdout.decode(), r.stderr.decode()])
+    print(json.dumps(out))
+
+asyncio.run(main())
+"""
+
+
+def test_sandbox_as_cuaas_in_the_container():
+    python = "/opt/cuaas/.venv/bin/python"
+    out = inside("sudo", "-u", "cuaas", python, "-c", SANDBOX_CHECK).stdout
+    root, tmp, env = json.loads(out)
+    assert root[0] == 1
+    assert "Read-only file system" in root[2]
+    assert tmp[0] == 0
+    assert sorted(env[1].splitlines()) == ["LC_ALL=C.UTF-8", "PWD=/"]
 
 
 def test_no_network():
