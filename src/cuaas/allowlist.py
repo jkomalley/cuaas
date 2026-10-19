@@ -4,8 +4,8 @@
 # floods with no args at all (yes, sleep, seq, shuf -r, factor on a huge number),
 # anything that runs other commands (env, nice, nohup, timeout, stdbuf, runcon,
 # sort --compress-program) and anything that writes files (split, tee, cp, rm...).
-# not safe yet: args can still hang or flood, like cat /dev/zero or
-# printf %2000000000d, until there are timeouts and an output cap
+# not safe yet: args can still hang or flood (cat /dev/zero, printf %2000000000d).
+# needs timeouts and an output cap
 ALLOWED = frozenset(
     {
         "b2sum",

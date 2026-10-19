@@ -1,4 +1,4 @@
-"""Real sandbox tests, run in a container from the image with `just test-sandbox`."""
+"""Sandbox tests, need bwrap and /jail. `just test-sandbox` runs them in the vm."""
 
 import asyncio
 import base64
@@ -6,13 +6,13 @@ import os
 from pathlib import Path
 
 import pytest
+from fastapi.testclient import TestClient
 
 from cuaas.allowlist import ALLOWED
-from cuaas.api import runner_dep
-from cuaas.main import app
+from cuaas.main import create_app
 from cuaas.runner import BWRAP, JAIL, BwrapRunner, SandboxError, check_gnu
 
-# set by image/test.sh, a broken image fails instead of skipping everything
+# set by `just test-sandbox`: a broken setup fails instead of skipping
 REQUIRED = os.environ.get("CUAAS_SANDBOX") == "1"
 
 pytestmark = [
@@ -113,15 +113,14 @@ def test_allowed_is_in_the_jail_and_gnu(cmd):
         assert b"(GNU coreutils)" in run([cmd, "--version"]).stdout
 
 
-# the api with bwrap behind it, same app the service runs
+# the api end to end with bwrap
 
 
 @pytest.fixture
-def api(client):
-    """The test client, running commands in the real sandbox."""
-    app.dependency_overrides[runner_dep] = BwrapRunner
-    yield client
-    app.dependency_overrides.pop(runner_dep, None)
+def api():
+    """TestClient with BwrapRunner, lifespan and check_gnu included."""
+    with TestClient(create_app(BwrapRunner())) as c:
+        yield c
 
 
 def test_api_wc(api):

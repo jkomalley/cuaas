@@ -1,4 +1,4 @@
-"""Smoke test so there's something for pytest to run."""
+"""The app starts."""
 
 
 def test_app_starts(client):

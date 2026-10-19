@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
 
 def runner_dep(request: Request) -> Runner:
-    """Return the app's runner, tests override this."""
+    """Return the runner create_app was given."""
     return request.app.state.runner
 
 
@@ -36,7 +36,7 @@ def _endpoint(cmd: str) -> Callable[..., Awaitable[CommandResponse]]:
 
 # strict json: lone surrogates, inf/nan and non-json bodies are a 422 or 415
 router = APIRouter(route_class=StrictJSONRoute)
-# a route per command instead of /{cmd}, so anything else is fastapi's own 404
+# one route per command instead of /{cmd}: unknown commands get fastapi's 404
 # and the docs list every command
 for cmd in sorted(ALLOWED):
     router.add_api_route(f"/{cmd}", _endpoint(cmd), methods=["POST"], name=cmd)

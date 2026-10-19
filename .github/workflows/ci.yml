@@ -6,13 +6,27 @@ on:
   pull_request:
 
 jobs:
-  check:
-    runs-on: ubuntu-latest
+  test:
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10.2.0 # no floating major tag, pin the release
-        with:
-          enable-cache: true
       - uses: extractions/setup-just@v4
+      # bwrap, /jail, the cuaas user, uv
+      - run: sudo image/provision.sh
       - run: uv sync --locked
-      - run: just check
+      - run: just lint
+      - run: just test
+      - run: just test-sandbox
+
+  deploy:
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: extractions/setup-just@v4
+      # pytest runs out here against the container. version matches provision.sh
+      - uses: astral-sh/setup-uv@v10.2.0
+        with:
+          version: 0.13.1
+      # no spare block device on the runner, pool is a loop file
+      - run: sudo env LXD_DEBUG=1 host/setup.sh
+      - run: just test-deploy

@@ -1,57 +1,60 @@
 #!/bin/bash
-# builds the cuaas lxd image: ubuntu 26.04, bwrap, gnu coreutils jail, the api.
-# run in the dev vm with `just build-image`
+# builds the cuaas lxd image (ubuntu 26.04 + provision.sh + the app).
+# needs host/setup.sh. run via `just build-image`
 set -euo pipefail
+# lxc launch/create read yaml from stdin when it's not a tty. under just and
+# limactl shell it never gets EOF and hangs
+exec </dev/null
 
 BUILD=cuaas-build
 repo=$(cd "$(dirname "$0")/.." && pwd)
+# shellcheck source=scripts/lxc.sh
+source "$repo/scripts/lxc.sh"
 
-run() { lxc exec "$BUILD" -- "$@"; }
+run() { lxc_t 600 exec "$BUILD" -- "$@"; }
 
-lxc delete --force "$BUILD" 2>/dev/null || true
-trap 'lxc delete --force "$BUILD" >/dev/null 2>&1 || true' EXIT
-lxc launch ubuntu:26.04 "$BUILD"
+# pull the base image up front so launch's 60s timeout doesn't include the download
+lxc_t 30 image show ubuntu-26.04 >/dev/null 2>&1 \
+  || lxc_t 900 image copy ubuntu:26.04 local: --alias ubuntu-26.04
+# copied once, so pull the latest 26.04 base on every build
+lxc_t 900 image refresh ubuntu-26.04 >/dev/null
+
+lxc_t 60 delete --force "$BUILD" 2>/dev/null || true
+trap 'lxc_t 60 delete --force "$BUILD" >/dev/null 2>&1 || true' EXIT
+# default profile, needs network for apt/snap/uv
+launch ubuntu-26.04 "$BUILD"
 run cloud-init status --wait >/dev/null
+# updates published since the base image
+run bash -c 'apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get upgrade -y -qq >/dev/null'
 
-run env DEBIAN_FRONTEND=noninteractive apt-get update -qq
-run env DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends bubblewrap python3-venv
-
-# jail: gnu coreutils and their libs, plus the C.utf8 locale so LC_ALL=C.UTF-8
-# works (without it glibc quietly falls back to C). the chisel snap can only write
-# in $HOME, so cut there and move it. bwrap can't mkdir mount points in a read-only
-# root, so they have to exist already
-run bash -euo pipefail -c '
-  snap wait system seed.loaded
-  snap install chisel
-  mkdir /root/jail
-  chisel cut --release ubuntu-26.04 --root /root/jail coreutils-from-gnu_bins libc-bin_locale
-  mv /root/jail /jail
-  mkdir /jail/dev /jail/proc /jail/tmp
-  snap remove --purge chisel
-'
-
-# app: only what uv needs to build it, no .venv or caches from the mac
-tar -C "$repo" --exclude=__pycache__ -cf - .python-version pyproject.toml uv.lock README.md src \
+# source + provision.sh only, no .venv or caches
+tar -C "$repo" --exclude=__pycache__ -cf - \
+  .python-version pyproject.toml uv.lock README.md src image/provision.sh \
   | run bash -c 'mkdir -p /opt/cuaas && tar -C /opt/cuaas --no-same-owner -xf -'
 
-# uv from pypi, in a throwaway venv since 26.04's python won't pip install system-wide.
-# uv is only needed for the sync. python goes under /opt so the service user can read it
+# chisel is only needed to cut the jail
+run /opt/cuaas/image/provision.sh
+run bash -c 'snap remove --purge chisel && rm -rf /opt/cuaas/image'
+
+# uv's python goes under /opt/cuaas so the cuaas user can read it (default is
+# /root/.local). uv itself is only needed to build
 run bash -euo pipefail -c '
-  python3 -m venv /tmp/uv-venv
-  /tmp/uv-venv/bin/pip install -q --disable-pip-version-check uv
   cd /opt/cuaas
   UV_PYTHON_INSTALL_DIR=/opt/cuaas/python UV_CACHE_DIR=/tmp/uv-cache UV_COMPILE_BYTECODE=1 \
-    UV_LINK_MODE=copy /tmp/uv-venv/bin/uv sync --locked --no-dev
-  rm -rf /tmp/uv-venv /tmp/uv-cache
+    UV_LINK_MODE=copy uv sync --locked --no-dev --quiet
+  rm -rf /tmp/uv-cache /opt/uv /usr/local/bin/uv
 '
 
-run useradd --system --no-create-home --shell /usr/sbin/nologin cuaas
-lxc file push "$repo/image/cuaas.service" "$BUILD/etc/systemd/system/cuaas.service"
-run systemctl enable cuaas
+lxc_t 60 file push "$repo/image/cuaas.service" "$BUILD/etc/systemd/system/cuaas.service"
+run systemctl enable --quiet cuaas
+# no network at runtime, cloud-init has nothing to do
+run touch /etc/cloud/cloud-init.disabled
+# fails at boot under lxd 5.21 + 26.04, and nobody needs a console login
+run systemctl mask --quiet console-getty.service
 
-lxc stop "$BUILD"
-# publish under a temp alias first, so a failed publish keeps the old image
-lxc image delete cuaas-new 2>/dev/null || true
-lxc publish "$BUILD" --alias cuaas-new
-lxc image delete cuaas 2>/dev/null || true
-lxc image alias rename cuaas-new cuaas
+lxc_t 120 stop "$BUILD"
+# publish to a temp alias then swap, a failed publish leaves the old image
+lxc_t 60 image delete cuaas-new 2>/dev/null || true
+lxc_t 900 publish -q "$BUILD" --alias cuaas-new
+lxc_t 60 image delete cuaas 2>/dev/null || true
+lxc_t 60 image alias rename cuaas-new cuaas
