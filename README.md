@@ -34,7 +34,7 @@ just vm-up          # create or start the vm, set it up, check it
 just test           # unit tests, on the mac
 just test-sandbox   # sandbox tests with bwrap, in the vm
 just test-deploy    # build the image, launch it like on the vps, test it over http
-just test-all       # all three, same as ci
+just test-all       # unit, sandbox and deploy tests
 just dev            # the api in the vm, http://127.0.0.1:8000/docs
 just fix            # fix lint and format
 just check          # lint + unit tests

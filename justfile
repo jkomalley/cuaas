@@ -31,7 +31,7 @@ test-deploy *args:
 test-deploy *args:
     {{ vm }} just test-deploy "$@"
 
-# everything ci runs
+# unit, sandbox and deploy tests
 test-all: test test-sandbox test-deploy
 
 # the api in the vm, on localhost:8000, reloads

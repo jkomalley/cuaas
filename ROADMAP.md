@@ -36,4 +36,6 @@ throwaway bwrap sandbox over chiselled GNU coreutils from Ubuntu 26.04. No shell
 ## M6 VPS
 
 - vps with lxd, no network in the container
+- lxd security updates: `host/setup.sh` holds the snap forever, fine for dev and ci, not
+  for the vps (refresh window, or hold only during builds)
 - tls, rate limiting, logs
