@@ -17,9 +17,13 @@ requires = ["uv_build>=0.12.23,<0.13.0"]
 build-backend = "uv_build"
 
 [dependency-groups]
-dev = [
+# test also goes into the deployed container, see scripts/test-deployed.sh
+test = [
     "httpx2>=2.13.1",
     "pytest>=9.1.1",
+]
+dev = [
+    { include-group = "test" },
     "ruff>=0.16.10",
     "ty>=0.0.84",
 ]
