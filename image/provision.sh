@@ -10,14 +10,16 @@ UV_VERSION=0.13.1
 
 export DEBIAN_FRONTEND=noninteractive
 
-if ! command -v bwrap >/dev/null || ! command -v python3 >/dev/null; then
+if ! dpkg -s bubblewrap python3-venv >/dev/null 2>&1; then
   apt-get update -qq
   apt-get install -y -qq --no-install-recommends bubblewrap python3-venv >/dev/null
 fi
 
-# re-cut only when the release or slices change
+# re-cut only when the release or slices change. the stamp lives outside the
+# jail, sandboxed commands shouldn't see it
 stamp="$RELEASE $SLICES"
-if [[ "$(cat /jail/.chisel 2>/dev/null)" != "$stamp" ]]; then
+stamp_file=/var/lib/cuaas/jail.stamp
+if [[ "$(cat "$stamp_file" 2>/dev/null)" != "$stamp" ]]; then
   snap wait system seed.loaded
   snap list chisel >/dev/null 2>&1 || snap install chisel
   # snap confinement, chisel can only write under $HOME
@@ -28,7 +30,8 @@ if [[ "$(cat /jail/.chisel 2>/dev/null)" != "$stamp" ]]; then
   mv /root/jail /jail
   # mount points, bwrap can't create them in a read-only root
   mkdir /jail/dev /jail/proc /jail/tmp
-  echo "$stamp" >/jail/.chisel
+  mkdir -p "$(dirname "$stamp_file")"
+  echo "$stamp" >"$stamp_file"
 fi
 
 # with apparmor_restrict_unprivileged_userns=1, only programs with an apparmor
