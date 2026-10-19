@@ -11,7 +11,7 @@ containerd:
   system: false
   user: false
 
-# lxd's storage pool, a real disk instead of a loop file in the vm's disk.
+# lxd's storage pool, on its own disk instead of a loop file in the vm's disk.
 # lima formats it once and mounts it at /mnt/lima-cuaas-lxd. `just vm-up` creates it
 additionalDisks:
   - name: cuaas-lxd

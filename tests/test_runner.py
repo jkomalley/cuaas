@@ -1,4 +1,4 @@
-"""Fast tests for the runner, no sandbox needed."""
+"""Runner tests that don't need bwrap."""
 
 import asyncio
 

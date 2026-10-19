@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
 
 def runner_dep(request: Request) -> Runner:
-    """Return the app's runner, tests override this."""
+    """Return the runner create_app was given."""
     return request.app.state.runner
 
 

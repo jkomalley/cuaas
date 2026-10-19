@@ -1,7 +1,7 @@
 #!/bin/bash
 # what the service needs to run commands: bwrap, the gnu coreutils jail, the
-# cuaas user, uv. same script for the dev vm, the ci runner and the image build,
-# so all three run the same thing. run as root, safe to rerun
+# cuaas user, uv. same script for the dev vm, the ci runner and the image build.
+# run as root, safe to rerun
 set -euo pipefail
 
 # chisel slices for the jail: gnu coreutils and their libs, plus the C.utf8
@@ -36,7 +36,8 @@ fi
 # with kernel.apparmor_restrict_unprivileged_userns on, only programs apparmor
 # allows can make user namespaces. ubuntu's bwrap-userns-restrict profile allows
 # bwrap and strips caps from what it runs. 26.04 loads it already, older releases
-# only ship it in extra-profiles. not in a container, lxd's host profile covers that
+# only ship it in extra-profiles. skipped in a container, the host's sysctl and
+# apparmor apply there
 profile=bwrap-userns-restrict
 if aa-enabled -q 2>/dev/null && ! systemd-detect-virt --container -q \
   && [[ ! -e /etc/apparmor.d/$profile && -e /usr/share/apparmor/extra-profiles/$profile ]]; then
@@ -44,7 +45,7 @@ if aa-enabled -q 2>/dev/null && ! systemd-detect-virt --container -q \
   apparmor_parser -r "/etc/apparmor.d/$profile"
 fi
 
-# the service user, bwrap runs as this so it uses user namespaces like in prod
+# the service runs as this, unprivileged, so bwrap needs user namespaces
 id cuaas >/dev/null 2>&1 || useradd --system --no-create-home --shell /usr/sbin/nologin cuaas
 
 # uv from pypi, in its own venv since ubuntu's python won't pip install system-wide

@@ -61,7 +61,7 @@ class CommandRequest(BaseModel):
 
     # everything after the command name, never parsed by a shell
     args: list[Annotated[str, AfterValidator(_utf8), AfterValidator(_no_nul)]] = []
-    # before stdin, so the validator can see it
+    # declared before stdin, so stdin's validator can read it
     stdin_encoding: Encoding = "utf-8"
     stdin: Annotated[str, AfterValidator(_utf8)] = ""
 

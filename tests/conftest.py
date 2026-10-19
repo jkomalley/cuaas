@@ -17,6 +17,6 @@ def fake():
 def client(fake):
     """Test client for the api with the fake runner."""
     with TestClient(create_app(fake)) as c:
-        # startup's gnu check isn't the test's call
+        # forget startup's check_gnu call, tests only check their own
         fake.calls.clear()
         yield c

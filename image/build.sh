@@ -2,8 +2,8 @@
 # builds the cuaas lxd image: ubuntu 26.04, image/provision.sh, the api.
 # needs host/setup.sh first. run on linux, `just build-image`
 set -euo pipefail
-# lxc reads yaml from stdin when it isn't a terminal and waits for eof, which
-# never comes under just or limactl shell. nothing here needs stdin
+# lxc reads config from stdin when it isn't a terminal, and under just or
+# limactl shell that stdin never closes, so lxc would wait forever
 exec </dev/null
 
 BUILD=cuaas-build
@@ -13,7 +13,7 @@ source "$repo/scripts/lxc.sh"
 
 run() { lxc_t 600 exec "$BUILD" -- "$@"; }
 
-# fetch the base on its own, so a slow download isn't mistaken for a stalled launch
+# download the base image first, so launch's short timeout doesn't have to cover it
 lxc_t 30 image show ubuntu-26.04 >/dev/null 2>&1 \
   || lxc_t 900 image copy ubuntu:26.04 local: --alias ubuntu-26.04
 
@@ -28,7 +28,7 @@ tar -C "$repo" --exclude=__pycache__ -cf - \
   .python-version pyproject.toml uv.lock README.md src image/provision.sh \
   | run bash -c 'mkdir -p /opt/cuaas && tar -C /opt/cuaas --no-same-owner -xf -'
 
-# same setup as the dev vm and ci, then the cutter isn't needed anymore
+# same setup as the dev vm and ci. chisel was only needed to cut the jail
 run /opt/cuaas/image/provision.sh
 run bash -c 'snap remove --purge chisel && rm -rf /opt/cuaas/image'
 
@@ -44,7 +44,7 @@ lxc_t 60 file push "$repo/image/cuaas.service" "$BUILD/etc/systemd/system/cuaas.
 run systemctl enable --quiet cuaas
 # containers from the image have no network, nothing for cloud-init to do
 run touch /etc/cloud/cloud-init.disabled
-# no console logins, and lxd 5.21 with 26.04 fails it at boot anyway
+# nothing logs in on the console, and it fails at boot under lxd 5.21
 run systemctl mask --quiet console-getty.service
 
 lxc_t 120 stop "$BUILD"

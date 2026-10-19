@@ -26,7 +26,7 @@ def api():
 def inside(*cmd, check=True):
     """Run cmd in the container."""
     argv = ["/usr/bin/sudo", "lxc", "exec", CONTAINER, "--", *cmd]
-    # our own argv, run on the test host
+    # fixed argv from the tests, nothing from outside
     return subprocess.run(argv, capture_output=True, text=True, check=check)  # noqa: S603
 
 

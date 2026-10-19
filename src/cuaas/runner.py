@@ -1,4 +1,4 @@
-"""Run commands in a bwrap sandbox, or pretend to on the mac."""
+"""Run commands in a bwrap sandbox."""
 
 import asyncio
 import json
@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
 BWRAP = "/usr/bin/bwrap"
-# chiselled gnu coreutils, see image/build.sh
+# chiselled gnu coreutils, see image/provision.sh
 JAIL = "/jail"
 
 
@@ -39,7 +39,7 @@ class Runner(Protocol):
 def check_argv(argv: Sequence[str]) -> None:
     """Raise ValueError if argv can't be run, same for every runner."""
     cmd = argv[0] if argv else ""
-    # a bare name in the jail's /usr/bin, never a path. the allowlist is the real check
+    # a bare name in the jail's /usr/bin, never a path. the allowlist picks which
     if not cmd or "/" in cmd or cmd in {".", ".."}:
         msg = f"not a command name: {cmd!r}"
         raise ValueError(msg)
@@ -119,11 +119,11 @@ class BwrapRunner:
                     env={},
                 )
             except OSError as e:
-                # no bwrap at all, like on the mac
+                # bwrap isn't installed
                 msg = f"can't start {BWRAP}: {e}"
                 raise SandboxError(msg) from e
             finally:
-                # bwrap has its own copy. ours would keep the pipe open forever
+                # bwrap has its own copy now. ours open means the read below never ends
                 os.close(write_fd)
             # also swallows EPIPE when the command exits before reading all of stdin
             stdout, stderr = await proc.communicate(stdin)
@@ -137,7 +137,7 @@ class BwrapRunner:
 
 @dataclass
 class FakeRunner:
-    """Pretends to run commands, for the mac and the fast tests."""
+    """Test double: records calls, returns result if set, else echoes stdin."""
 
     # returned for every call when set
     result: Result | None = None
@@ -145,12 +145,12 @@ class FakeRunner:
 
     async def run(self, argv: Sequence[str], stdin: bytes = b"") -> Result:
         """Record the call, return result, a gnu --version, or stdin echoed."""
-        # same errors as bwrap, and a rejected call isn't recorded
+        # rejects the same argv as BwrapRunner, before recording it
         check_argv(argv)
         self.calls.append((list(argv), stdin))
         if self.result is not None:
             return self.result
-        # enough for check_gnu
+        # so check_gnu passes at startup
         if list(argv[1:]) == ["--version"]:
             return Result(f"{argv[0]} (GNU coreutils) fake\n".encode(), b"", 0)
         return Result(stdout=stdin, stderr=b"", exit_code=0)

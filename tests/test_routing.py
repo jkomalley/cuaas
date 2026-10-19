@@ -122,5 +122,5 @@ def test_sandbox_error_is_500_without_details(caplog):
     response = client.post("/wc", json={})
     assert response.status_code == 500
     assert response.json() == {"detail": "Sandbox error"}
-    # the real error is only in the log
+    # bwrap's error only goes to the log
     assert "execvp" in caplog.text

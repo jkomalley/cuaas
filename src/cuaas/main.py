@@ -35,7 +35,6 @@ async def sandbox_error(request: Request, exc: Exception) -> JSONResponse:
 def create_app(runner: Runner | None = None) -> FastAPI:
     """Return the api, running commands with runner, bwrap by default."""
     app = FastAPI(lifespan=lifespan)
-    # tests hand in a fake
     app.state.runner = runner or BwrapRunner()
     app.include_router(router)
     app.add_exception_handler(SandboxError, sandbox_error)

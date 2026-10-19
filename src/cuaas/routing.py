@@ -47,7 +47,6 @@ def _non_finite(value: object, loc: tuple = ()) -> tuple[tuple, float] | None:
     return None
 
 
-# the api router uses this, see test_routes_parse_strict_json
 class StrictJSONRoute(APIRoute):
     r"""Route that rejects bodies pydantic's JSON parser won't accept.
 

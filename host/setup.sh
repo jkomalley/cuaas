@@ -4,15 +4,15 @@
 # usage: host/setup.sh [STORAGE]
 #   STORAGE is a block device or a btrfs mount for the pool, a loop file if left out
 set -euo pipefail
-# lxc reads yaml from stdin when it isn't a terminal and waits for eof, which
-# never comes under just or limactl shell. nothing here needs stdin
+# lxc reads config from stdin when it isn't a terminal, and under just or
+# limactl shell that stdin never closes, so lxc would wait forever
 exec </dev/null
 
 here=$(cd "$(dirname "$0")" && pwd)
 storage=${1:-}
 
 snap wait system seed.loaded
-# the lts, same as the vps gets
+# 5.21 is the lts
 snap list lxd >/dev/null 2>&1 || snap install lxd --channel=5.21/stable
 # no refresh in the middle of a build or a deploy
 snap refresh --hold lxd >/dev/null
@@ -43,7 +43,7 @@ lxc profile device show default | grep -q '^eth0:' \
 lxc profile show cuaas >/dev/null 2>&1 || lxc profile create cuaas
 lxc profile edit cuaas <"$here/cuaas-profile.yaml"
 
-# goroutine dumps when lxd stalls, see scripts/lxc.sh. localhost only
+# lets scripts/lxc.sh dump lxd's goroutines when a call times out. localhost only
 lxc config set core.debug_address 127.0.0.1:8444
 
 # docker's FORWARD DROP (on the ci runner) cuts lxdbr0 off from the internet
