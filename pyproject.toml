@@ -45,5 +45,5 @@ ignore = [
 addopts = '-m "not bwrap and not deployed"'
 markers = [
     "bwrap: runs commands in bwrap, needs linux and /jail. `just test-bwrap`",
-    "deployed: checks on the built image, launched like on the vps. `just test-deployed`",
+    "deployed: checks on a container launched from the built image. `just test-deployed`",
 ]

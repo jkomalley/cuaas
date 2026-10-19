@@ -34,7 +34,7 @@ just vm-up          # create or start the vm, set it up, check it
 just test           # app + bwrap tests, seconds
 just test-app       # our code without bwrap, on the mac
 just test-bwrap     # runs commands in bwrap, in the vm
-just test-deployed  # build the image, launch it like on the vps, check it
+just test-deployed  # build the image, launch it with no network, check it
 just test-all       # all of the above
 just dev            # the api in the vm, http://127.0.0.1:8000/docs
 just fix            # fix lint and format
@@ -47,7 +47,7 @@ the mac is just for the editor, the vm keeps its venv in `~/.venvs/cuaas`.
 
 - `image/provision.sh` sets up bwrap, the gnu coreutils jail, the cuaas user and uv.
   same script in the vm, in ci and in the image
-- `host/setup.sh` sets up lxd, same for the vm, ci and the vps
+- `host/setup.sh` sets up lxd, same for the vm and ci
 - `image/build.sh` builds the image, `scripts/test-deployed.sh` launches it with no
   network and a proxy device for the port
 - lxc runs through sudo with timeouts and never gets stdin, see `scripts/lxc.sh`

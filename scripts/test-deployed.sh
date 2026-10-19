@@ -1,5 +1,5 @@
 #!/bin/bash
-# builds the image, launches it the way the vps will (cuaas profile, no nic,
+# builds the image, launches it with the cuaas profile (no nic,
 # proxy device for the port) and runs the deployed checks. extra args go to pytest.
 # needs host/setup.sh. run via `just test-deployed`
 set -euo pipefail

@@ -1,4 +1,4 @@
-"""Checks on the built image, launched like on the vps. `just test-deployed`."""
+"""Checks on a container launched from the built image. `just test-deployed`."""
 
 import base64
 import json

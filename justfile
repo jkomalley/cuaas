@@ -24,12 +24,12 @@ test-bwrap *args:
 test-bwrap *args:
     {{ vm }} just test-bwrap "$@"
 
-# build the image, launch it like on the vps, check it. extra args go to pytest
+# build the image, launch it with no network, check it. extra args go to pytest
 [linux]
 test-deployed *args:
     scripts/test-deployed.sh "$@"
 
-# build the image, launch it like on the vps, check it. extra args go to pytest
+# build the image, launch it with no network, check it. extra args go to pytest
 [macos]
 test-deployed *args:
     {{ vm }} just test-deployed "$@"

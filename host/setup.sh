@@ -1,6 +1,6 @@
 #!/bin/bash
-# lxd host setup for building and running the cuaas image. used on the dev vm,
-# ci and the vps. run as root, idempotent.
+# lxd host setup for building and running the cuaas image. used on the dev vm
+# and ci. run as root, idempotent.
 # usage: host/setup.sh [STORAGE]
 #   STORAGE: block device or btrfs mount for the pool. default: loop file
 #   LXD_DEBUG=1: pprof on 127.0.0.1:8444 for stall dumps. dev vm and ci only
