@@ -117,10 +117,10 @@ class BrokenRunner:
 
 
 def test_sandbox_error_is_500_without_details(caplog):
-    # no `with`, so startup's gnu check doesn't hit the broken runner
+    # no `with`, skips lifespan so check_gnu doesn't hit the broken runner
     client = TestClient(create_app(BrokenRunner()))
     response = client.post("/wc", json={})
     assert response.status_code == 500
     assert response.json() == {"detail": "Sandbox error"}
-    # bwrap's error only goes to the log
+    # details only go to the log
     assert "execvp" in caplog.text

@@ -1,9 +1,9 @@
 #!/bin/bash
-# builds the cuaas lxd image: ubuntu 26.04, image/provision.sh, the api.
-# needs host/setup.sh first. run on linux, `just build-image`
+# builds the cuaas lxd image (ubuntu 26.04 + provision.sh + the app).
+# needs host/setup.sh. run via `just build-image`
 set -euo pipefail
-# lxc reads config from stdin when it isn't a terminal, and under just or
-# limactl shell that stdin never closes, so lxc would wait forever
+# lxc launch/create read yaml from stdin when it's not a tty. under just and
+# limactl shell it never gets EOF and hangs
 exec </dev/null
 
 BUILD=cuaas-build
@@ -13,26 +13,27 @@ source "$repo/scripts/lxc.sh"
 
 run() { lxc_t 600 exec "$BUILD" -- "$@"; }
 
-# download the base image first, so launch's short timeout doesn't have to cover it
+# pull the base image up front so launch's 60s timeout doesn't include the download
 lxc_t 30 image show ubuntu-26.04 >/dev/null 2>&1 \
   || lxc_t 900 image copy ubuntu:26.04 local: --alias ubuntu-26.04
 
 lxc_t 60 delete --force "$BUILD" 2>/dev/null || true
 trap 'lxc_t 60 delete --force "$BUILD" >/dev/null 2>&1 || true' EXIT
-# the default profile, the build needs network
+# default profile, needs network for apt/snap/uv
 launch ubuntu-26.04 "$BUILD"
 run cloud-init status --wait >/dev/null
 
-# the app and provision.sh. only what uv needs to build it, no .venv or caches
+# source + provision.sh only, no .venv or caches
 tar -C "$repo" --exclude=__pycache__ -cf - \
   .python-version pyproject.toml uv.lock README.md src image/provision.sh \
   | run bash -c 'mkdir -p /opt/cuaas && tar -C /opt/cuaas --no-same-owner -xf -'
 
-# same setup as the dev vm and ci. chisel was only needed to cut the jail
+# chisel is only needed to cut the jail
 run /opt/cuaas/image/provision.sh
 run bash -c 'snap remove --purge chisel && rm -rf /opt/cuaas/image'
 
-# python under /opt so the service user can read it, no cache left behind
+# uv's python goes under /opt/cuaas so the cuaas user can read it (default is
+# /root/.local)
 run bash -euo pipefail -c '
   cd /opt/cuaas
   UV_PYTHON_INSTALL_DIR=/opt/cuaas/python UV_CACHE_DIR=/tmp/uv-cache UV_COMPILE_BYTECODE=1 \
@@ -42,13 +43,13 @@ run bash -euo pipefail -c '
 
 lxc_t 60 file push "$repo/image/cuaas.service" "$BUILD/etc/systemd/system/cuaas.service"
 run systemctl enable --quiet cuaas
-# containers from the image have no network, nothing for cloud-init to do
+# no network at runtime, cloud-init has nothing to do
 run touch /etc/cloud/cloud-init.disabled
-# nothing logs in on the console, and it fails at boot under lxd 5.21
+# fails at boot under lxd 5.21 + 26.04, and nobody needs a console login
 run systemctl mask --quiet console-getty.service
 
 lxc_t 120 stop "$BUILD"
-# publish under a temp alias first, so a failed publish keeps the old image
+# publish to a temp alias then swap, a failed publish leaves the old image
 lxc_t 60 image delete cuaas-new 2>/dev/null || true
 lxc_t 900 publish -q "$BUILD" --alias cuaas-new
 lxc_t 60 image delete cuaas 2>/dev/null || true

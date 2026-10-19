@@ -1,6 +1,6 @@
 #!/bin/bash
-# checks the dev box can run the sandbox, prints a fix for anything that's off.
-# run in the vm by `just vm-doctor`
+# checks the dev vm is set up, prints the fix for each failure. run via
+# `just vm-doctor`
 set -uo pipefail
 
 repo=$(cd "$(dirname "$0")/.." && pwd)
@@ -18,7 +18,7 @@ check() {
 }
 
 gnu_in_bwrap() {
-  # as the service user, the way the api runs it
+  # as cuaas, like the service
   sudo -u cuaas bwrap --ro-bind /jail / --dev /dev --unshare-all --clearenv \
     -- /usr/bin/wc --version | grep -q "(GNU coreutils)"
 }

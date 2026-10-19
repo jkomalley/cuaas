@@ -12,7 +12,7 @@ from cuaas.allowlist import ALLOWED
 from cuaas.main import create_app
 from cuaas.runner import BWRAP, JAIL, BwrapRunner, SandboxError, check_gnu
 
-# set by `just test-sandbox`, a broken setup fails instead of skipping everything
+# set by `just test-sandbox`: a broken setup fails instead of skipping
 REQUIRED = os.environ.get("CUAAS_SANDBOX") == "1"
 
 pytestmark = [
@@ -113,12 +113,12 @@ def test_allowed_is_in_the_jail_and_gnu(cmd):
         assert b"(GNU coreutils)" in run([cmd, "--version"]).stdout
 
 
-# the api with bwrap behind it, same app the service runs
+# the api end to end with bwrap
 
 
 @pytest.fixture
 def api():
-    """Test client for the api with bwrap, startup's gnu check included."""
+    """TestClient with BwrapRunner, lifespan and check_gnu included."""
     with TestClient(create_app(BwrapRunner())) as c:
         yield c
 

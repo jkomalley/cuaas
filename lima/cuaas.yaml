@@ -1,5 +1,4 @@
-# dev vm: ubuntu 26.04. start with `just vm-up`, not limactl directly, that's
-# where the repo mount and the setup scripts come from
+# dev vm. use `just vm-up`, it adds the repo mount and runs the setup scripts
 minimumLimaVersion: 2.0.0
 base: template:ubuntu-26.04
 
@@ -11,8 +10,8 @@ containerd:
   system: false
   user: false
 
-# lxd's storage pool, on its own disk instead of a loop file in the vm's disk.
-# lima formats it once and mounts it at /mnt/lima-cuaas-lxd. `just vm-up` creates it
+# dedicated disk for the lxd pool, mounted at /mnt/lima-cuaas-lxd. created by
+# `just vm-up`
 additionalDisks:
   - name: cuaas-lxd
     format: true

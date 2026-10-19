@@ -1,11 +1,9 @@
 #!/bin/bash
-# what the service needs to run commands: bwrap, the gnu coreutils jail, the
-# cuaas user, uv. same script for the dev vm, the ci runner and the image build.
-# run as root, safe to rerun
+# everything the service needs: bwrap, the gnu coreutils jail, the cuaas user,
+# uv. used by the dev vm, ci and the image build. run as root, idempotent.
 set -euo pipefail
 
-# chisel slices for the jail: gnu coreutils and their libs, plus the C.utf8
-# locale so LC_ALL=C.UTF-8 works (without it glibc quietly falls back to C)
+# libc-bin_locale has C.utf8. without it LC_ALL=C.UTF-8 silently falls back to C
 RELEASE=ubuntu-26.04
 SLICES="coreutils-from-gnu_bins libc-bin_locale"
 UV_VERSION=0.13.1
@@ -17,27 +15,26 @@ if ! command -v bwrap >/dev/null || ! command -v python3 >/dev/null; then
   apt-get install -y -qq --no-install-recommends bubblewrap python3-venv >/dev/null
 fi
 
-# the jail. skipped when it was cut from the same release and slices, so reruns are quick
+# re-cut only when the release or slices change
 stamp="$RELEASE $SLICES"
 if [[ "$(cat /jail/.chisel 2>/dev/null)" != "$stamp" ]]; then
   snap wait system seed.loaded
   snap list chisel >/dev/null 2>&1 || snap install chisel
-  # the chisel snap can only write in $HOME, so cut there and move it
+  # snap confinement, chisel can only write under $HOME
   rm -rf /root/jail /jail
   mkdir /root/jail
   # shellcheck disable=SC2086
   chisel cut --release "$RELEASE" --root /root/jail $SLICES
   mv /root/jail /jail
-  # bwrap can't mkdir mount points in a read-only root, so they have to exist already
+  # mount points, bwrap can't create them in a read-only root
   mkdir /jail/dev /jail/proc /jail/tmp
   echo "$stamp" >/jail/.chisel
 fi
 
-# with kernel.apparmor_restrict_unprivileged_userns on, only programs apparmor
-# allows can make user namespaces. ubuntu's bwrap-userns-restrict profile allows
-# bwrap and strips caps from what it runs. 26.04 loads it already, older releases
-# only ship it in extra-profiles. skipped in a container, the host's sysctl and
-# apparmor apply there
+# with apparmor_restrict_unprivileged_userns=1, only programs with an apparmor
+# profile allowing it can create user namespaces. bwrap-userns-restrict is that
+# profile. 26.04 loads it by default, older releases only ship it in
+# extra-profiles. in a container the host's policy applies
 profile=bwrap-userns-restrict
 if aa-enabled -q 2>/dev/null && ! systemd-detect-virt --container -q \
   && [[ ! -e /etc/apparmor.d/$profile && -e /usr/share/apparmor/extra-profiles/$profile ]]; then
@@ -45,10 +42,10 @@ if aa-enabled -q 2>/dev/null && ! systemd-detect-virt --container -q \
   apparmor_parser -r "/etc/apparmor.d/$profile"
 fi
 
-# the service runs as this, unprivileged, so bwrap needs user namespaces
+# service user. bwrap runs unprivileged as this, hence the userns bit above
 id cuaas >/dev/null 2>&1 || useradd --system --no-create-home --shell /usr/sbin/nologin cuaas
 
-# uv from pypi, in its own venv since ubuntu's python won't pip install system-wide
+# ubuntu's python is externally managed, so uv gets its own venv
 if [[ "$(/usr/local/bin/uv --version 2>/dev/null)" != "uv $UV_VERSION"* ]]; then
   rm -rf /opt/uv
   python3 -m venv /opt/uv

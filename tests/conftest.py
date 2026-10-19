@@ -9,7 +9,7 @@ from cuaas.runner import FakeRunner
 
 @pytest.fixture
 def fake():
-    """The fake runner behind client, so a test can set its result or check calls."""
+    """The FakeRunner behind `client`, for setting results and checking calls."""
     return FakeRunner()
 
 
@@ -17,6 +17,6 @@ def fake():
 def client(fake):
     """Test client for the api with the fake runner."""
     with TestClient(create_app(fake)) as c:
-        # forget startup's check_gnu call, tests only check their own
+        # drop the check_gnu call from startup
         fake.calls.clear()
         yield c

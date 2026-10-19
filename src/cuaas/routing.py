@@ -15,14 +15,13 @@ if TYPE_CHECKING:
 
     from fastapi import Request, Response
 
-# parses any JSON, only used to check the body
+# validator for any json value, just to check the body parses
 _json = TypeAdapter(Any)
 
 
 def _is_json(content_type: str) -> bool:
     """Return whether a content-type header is JSON, like application/*+json."""
-    # parsed the same way fastapi does. unlike fastapi, no header at all isn't
-    # json here, a body without one is a 415
+    # same parsing as fastapi, except a missing header isn't json (415)
     message = email.message.Message()
     message["content-type"] = content_type
     subtype = message.get_content_subtype()
@@ -61,11 +60,11 @@ class StrictJSONRoute(APIRoute):
         handler = super().get_route_handler()
 
         async def strict_handler(request: Request) -> Response:
-            # starlette caches the body, so the handler can read it again
+            # starlette caches this, the wrapped handler reads it again
             body = await request.body()
             if body:
-                # fastapi's own 422 for non-JSON bodies echoes the raw bytes,
-                # which crashes on invalid UTF-8
+                # fastapi's 422 for non-json echoes the raw body and crashes on
+                # invalid utf-8
                 if not _is_json(request.headers.get("content-type", "")):
                     raise HTTPException(
                         status_code=415,
@@ -79,7 +78,7 @@ class StrictJSONRoute(APIRoute):
                         [{**error, "loc": ("body", *error["loc"])} for error in errors],
                         body=body,
                     ) from e
-                # the 422 echoes the input, and json can't send inf/nan back
+                # the 422 echoes input back, and inf/nan aren't valid json
                 if (found := _non_finite(value)) is not None:
                     loc, bad = found
                     raise RequestValidationError(
@@ -88,7 +87,7 @@ class StrictJSONRoute(APIRoute):
                                 "type": "finite_number",
                                 "loc": ("body", *loc),
                                 "msg": "Input should be a finite number",
-                                # as a string, like "NaN" or "Infinity"
+                                # e.g. "NaN", "Infinity"
                                 "input": json.dumps(bad),
                             },
                         ],

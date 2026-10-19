@@ -25,8 +25,8 @@ def _b64decode(data: str) -> bytes:
 
 
 def _utf8(value: str) -> str:
-    """Reject lone surrogates, they can't be encoded as utf-8 later."""
-    # routing already rejects them in json, this covers anything built another way
+    """Reject lone surrogates, they can't be encoded as utf-8."""
+    # StrictJSONRoute catches these in json bodies, this is for models built directly
     try:
         value.encode()
     except UnicodeEncodeError as e:
@@ -61,7 +61,7 @@ class CommandRequest(BaseModel):
 
     # everything after the command name, never parsed by a shell
     args: list[Annotated[str, AfterValidator(_utf8), AfterValidator(_no_nul)]] = []
-    # declared before stdin, so stdin's validator can read it
+    # must come before stdin so _check_base64 sees it in info.data
     stdin_encoding: Encoding = "utf-8"
     stdin: Annotated[str, AfterValidator(_utf8)] = ""
 
@@ -73,7 +73,7 @@ class CommandRequest(BaseModel):
             try:
                 _b64decode(stdin)
             except ValueError as e:
-                # same type and message pydantic uses for its own base64
+                # matches pydantic's built-in base64 error
                 error_type = "base64_decode"
                 msg = "Base64 decoding error: '{error}'"
                 raise PydanticCustomError(error_type, msg, {"error": str(e)}) from e
@@ -82,21 +82,21 @@ class CommandRequest(BaseModel):
     @property
     def stdin_bytes(self) -> bytes:
         """Return stdin as bytes, decoding base64 if stdin_encoding says so."""
-        # never raises, the validators already checked the base64 and the utf-8
+        # can't fail, the validators already checked it
         if self.stdin_encoding == "base64":
             return _b64decode(self.stdin)
         return self.stdin.encode()
 
 
 class CommandResponse(BaseModel):
-    """What the command did. Any exit code is still a 200."""
+    """What the command did. Always a 200, whatever the exit code."""
 
     stdout: str = ""
     # base64 when stdout isn't valid utf-8
     stdout_encoding: Encoding = "utf-8"
     stderr: str = ""
     stderr_encoding: Encoding = "utf-8"
-    # the command's, 128 + signal if it was killed. not the http status
+    # the command's exit code (128 + signal if killed), not the http status
     exit_code: int = 0
 
     @classmethod

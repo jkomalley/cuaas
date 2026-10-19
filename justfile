@@ -1,6 +1,6 @@
 set positional-arguments
 
-# runs a command in the dev vm, in the repo
+# prefix for running something in the dev vm, cwd = repo
 vm := "limactl shell --workdir " + quote(justfile_directory()) + " cuaas"
 
 # list recipes
@@ -21,17 +21,17 @@ test-sandbox *args:
 test-sandbox *args:
     {{ vm }} just test-sandbox "$@"
 
-# build the image, launch it like on the vps, http tests. extra args go to pytest
+# build and launch the image like prod, run http tests. extra args go to pytest
 [linux]
 test-deploy *args:
     scripts/test-deploy.sh "$@"
 
-# build the image, launch it like on the vps, http tests. extra args go to pytest
+# build and launch the image like prod, run http tests. extra args go to pytest
 [macos]
 test-deploy *args:
     {{ vm }} just test-deploy "$@"
 
-# unit, sandbox and deploy tests, what ci runs
+# everything ci runs
 test-all: test test-sandbox test-deploy
 
 # the api in the vm, on localhost:8000, reloads
@@ -55,14 +55,14 @@ fix:
     uv run ruff check --fix
     uv run ruff format
 
-# lint and unit tests, quick before a push
+# lint + unit tests
 check: lint test
 
 # create or start the dev vm, set it up, then vm-doctor
 vm-up:
     #!/bin/bash
     set -euo pipefail
-    # repo mounted writable at the same path, so fix and format work from the vm
+    # repo mounted rw at the same path
     if limactl list -q | grep -qx cuaas; then
       limactl start cuaas
     else
@@ -74,7 +74,7 @@ vm-up:
     {{ vm }} sudo host/setup.sh /mnt/lima-cuaas-lxd
     just vm-doctor
 
-# check the dev vm can run the sandbox, print fixes
+# check the dev vm is set up right
 vm-doctor:
     #!/bin/bash
     set -euo pipefail
@@ -102,7 +102,7 @@ build-image:
 build-image:
     {{ vm }} just build-image
 
-# delete the dev vm and its lxd disk, vm-up builds a fresh one
+# delete the dev vm and its lxd disk
 vm-rm:
     limactl delete --force cuaas
     limactl disk delete cuaas-lxd 2>/dev/null || true

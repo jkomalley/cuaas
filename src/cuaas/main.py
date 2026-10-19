@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
     from cuaas.runner import Runner
 
-# uvicorn's logger, so this shows up next to its startup lines
+# log through uvicorn's logger so it lines up with its startup output
 logger = logging.getLogger("uvicorn.error")
 
 
@@ -27,13 +27,13 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
 
 
 async def sandbox_error(request: Request, exc: Exception) -> JSONResponse:
-    """Our fault, so a 500. bwrap's error goes in the log, not to the client."""
+    """Return a generic 500, the details only go to the log."""
     logger.error("sandbox error on %s: %s", request.url.path, exc)
     return JSONResponse({"detail": "Sandbox error"}, status_code=500)
 
 
 def create_app(runner: Runner | None = None) -> FastAPI:
-    """Return the api, running commands with runner, bwrap by default."""
+    """Build the app. Uses BwrapRunner unless a runner is passed in."""
     app = FastAPI(lifespan=lifespan)
     app.state.runner = runner or BwrapRunner()
     app.include_router(router)

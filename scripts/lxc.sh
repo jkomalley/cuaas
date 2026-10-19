@@ -1,9 +1,8 @@
-# sourced by the image scripts. every lxc call has a timeout, so a stuck lxd
-# fails with a message instead of hanging. lxc runs through sudo, so nobody
-# needs to be in the lxd group
+# sourced by the image scripts. lxc via sudo (no lxd group needed) with a timeout
+# on every call
 
-# lxc_t SECS ARGS... runs lxc ARGS, giving up after SECS. on a timeout it saves
-# lxd's goroutines (core.debug_address, set by host/setup.sh) for debugging
+# lxc_t SECS ARGS...: sudo lxc ARGS with a timeout. on timeout, dumps lxd's
+# goroutines from the debug address host/setup.sh turns on
 lxc_t() {
   local secs=$1 rc=0
   shift
@@ -17,17 +16,15 @@ lxc_t() {
   return "$rc"
 }
 
-# launch IMAGE NAME [ARGS...]. stdin is /dev/null because lxc launch reads
-# instance config from stdin when it isn't a terminal, and waits for eof
+# launch IMAGE NAME [ARGS...]: stdin from /dev/null or lxc launch waits for yaml
 launch() {
   local image=$1 name=$2
   shift 2
   lxc_t 60 launch -q "$image" "$name" "$@" </dev/null
 }
 
-# booted NAME waits for systemd in NAME to finish booting, false if anything
-# failed. is-system-running can't answer until the container's system bus is
-# up, so ask again until it does
+# booted NAME: wait for systemd in NAME to finish booting, fail if any unit
+# failed. is-system-running errors until dbus is up, hence the retry
 booted() {
   local name=$1 state=""
   for _ in $(seq 60); do

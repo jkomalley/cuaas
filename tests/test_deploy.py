@@ -1,4 +1,4 @@
-"""The prod image launched like on the vps, over http. `just test-deploy` runs them."""
+"""Deploy tests: the prod image launched like on the vps. Run via `just test-deploy`."""
 
 import base64
 import os
@@ -26,7 +26,7 @@ def api():
 def inside(*cmd, check=True):
     """Run cmd in the container."""
     argv = ["/usr/bin/sudo", "lxc", "exec", CONTAINER, "--", *cmd]
-    # fixed argv from the tests, nothing from outside
+    # argv is hardcoded in the tests
     return subprocess.run(argv, capture_output=True, text=True, check=check)  # noqa: S603
 
 

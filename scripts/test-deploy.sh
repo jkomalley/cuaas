@@ -1,10 +1,10 @@
 #!/bin/bash
-# builds the image, launches it like on the vps (cuaas profile, no network, a
-# proxy device for the port) and runs the deploy tests over http. args go to pytest.
-# run on linux after host/setup.sh, `just test-deploy`
+# builds the image, launches it the way the vps will (cuaas profile, no nic,
+# proxy device for the port) and runs the deploy tests. extra args go to pytest.
+# needs host/setup.sh. run via `just test-deploy`
 set -euo pipefail
-# lxc reads config from stdin when it isn't a terminal, and under just or
-# limactl shell that stdin never closes, so lxc would wait forever
+# lxc launch/create read yaml from stdin when it's not a tty. under just and
+# limactl shell it never gets EOF and hangs
 exec </dev/null
 
 NAME=cuaas-deploy-test
@@ -17,14 +17,14 @@ source "$repo/scripts/lxc.sh"
 
 lxc_t 60 delete --force "$NAME" 2>/dev/null || true
 trap 'lxc_t 60 delete --force "$NAME" >/dev/null 2>&1 || true' EXIT
-# only the cuaas profile, so no nic. lxc warns there's no network, that's expected
+# no nic on purpose, ignore lxc's warning
 launch cuaas "$NAME" --profile cuaas
 lxc_t 60 config device add "$NAME" api proxy \
   listen=tcp:127.0.0.1:$PORT connect=tcp:127.0.0.1:8000 >/dev/null
 
 booted "$NAME"
 
-# wait for the api, it checks for gnu coreutils before it starts listening
+# wait for the api to listen, it runs check_gnu first
 for _ in $(seq 60); do
   curl -sf "http://127.0.0.1:$PORT/openapi.json" >/dev/null && break
   sleep 0.5
