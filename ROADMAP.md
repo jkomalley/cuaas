@@ -27,6 +27,8 @@ throwaway bwrap sandbox over chiselled GNU coreutils from Ubuntu 26.04. No shell
 ## M4 CLI
 
 - `cuaas wc -l < file`
+- readable errors on stderr, coreutils-style exit codes. the api keeps fastapi's 422 shape,
+  the cli turns it into `unknown field "stdn"` etc
 
 ## M5 Files
 
