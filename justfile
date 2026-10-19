@@ -71,7 +71,7 @@ vm-up:
     fi
     {{ vm }} sudo image/provision.sh
     {{ vm }} sudo lima/setup.sh
-    {{ vm }} sudo host/setup.sh /mnt/lima-cuaas-lxd
+    {{ vm }} sudo env LXD_DEBUG=1 host/setup.sh /mnt/lima-cuaas-lxd
     just vm-doctor
 
 # check the dev vm is set up right

@@ -2,7 +2,7 @@
 # on every call
 
 # lxc_t SECS ARGS...: sudo lxc ARGS with a timeout. on timeout, dumps lxd's
-# goroutines from the debug address host/setup.sh turns on
+# goroutines if host/setup.sh ran with LXD_DEBUG=1
 lxc_t() {
   local secs=$1 rc=0
   shift
@@ -10,8 +10,12 @@ lxc_t() {
   if [[ $rc == 124 ]]; then
     local dump
     dump=/tmp/lxd-stall-$(date +%s).txt
-    curl -s --max-time 10 "http://127.0.0.1:8444/debug/pprof/goroutine?debug=2" >"$dump" || true
-    echo "lxc $1 stalled after ${secs}s, lxd's goroutines are in $dump" >&2
+    if curl -sf --max-time 10 "http://127.0.0.1:8444/debug/pprof/goroutine?debug=2" >"$dump"; then
+      echo "lxc $1 stalled after ${secs}s, lxd's goroutines are in $dump" >&2
+    else
+      rm -f "$dump"
+      echo "lxc $1 stalled after ${secs}s, no goroutine dump (LXD_DEBUG off?)" >&2
+    fi
   fi
   return "$rc"
 }

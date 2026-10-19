@@ -3,6 +3,7 @@
 # ci and the vps. run as root, idempotent.
 # usage: host/setup.sh [STORAGE]
 #   STORAGE: block device or btrfs mount for the pool. default: loop file
+#   LXD_DEBUG=1: pprof on 127.0.0.1:8444 for stall dumps. dev vm and ci only
 set -euo pipefail
 # lxc launch/create read yaml from stdin when it's not a tty. under just and
 # limactl shell it never gets EOF and hangs
@@ -44,8 +45,13 @@ grep -q '^eth0:' <<<"$devices" \
 lxc profile show cuaas >/dev/null 2>&1 || lxc profile create cuaas
 lxc profile edit cuaas <"$here/cuaas-profile.yaml"
 
-# pprof on localhost. scripts/lxc.sh dumps goroutines from it on a timeout
-lxc config set core.debug_address 127.0.0.1:8444
+# scripts/lxc.sh dumps goroutines from this on a timeout. unauthenticated, so
+# off unless asked for
+if [[ "${LXD_DEBUG:-}" == 1 ]]; then
+  lxc config set core.debug_address 127.0.0.1:8444
+else
+  lxc config unset core.debug_address
+fi
 
 # the ci runner has docker, whose FORWARD DROP policy blocks lxdbr0 traffic
 if iptables -L DOCKER-USER -n >/dev/null 2>&1; then

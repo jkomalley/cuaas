@@ -28,5 +28,5 @@ jobs:
         with:
           version: 0.13.1
       # no spare block device on the runner, pool is a loop file
-      - run: sudo host/setup.sh
+      - run: sudo env LXD_DEBUG=1 host/setup.sh
       - run: just test-deploy
