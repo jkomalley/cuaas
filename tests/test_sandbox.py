@@ -1,8 +1,7 @@
-"""Sandbox tests, need bwrap and /jail. `just test-sandbox` runs them in the vm."""
+"""Tests that run commands in bwrap, need linux and /jail. `just test-bwrap`."""
 
 import asyncio
 import base64
-import os
 from pathlib import Path
 
 import pytest
@@ -10,18 +9,9 @@ from fastapi.testclient import TestClient
 
 from cuaas.allowlist import ALLOWED
 from cuaas.main import create_app
-from cuaas.runner import BWRAP, JAIL, BwrapRunner, SandboxError, check_gnu
+from cuaas.runner import JAIL, BwrapRunner, SandboxError, check_gnu
 
-# set by `just test-sandbox`: a broken setup fails instead of skipping
-REQUIRED = os.environ.get("CUAAS_SANDBOX") == "1"
-
-pytestmark = [
-    pytest.mark.sandbox,
-    pytest.mark.skipif(
-        not REQUIRED and not (Path(BWRAP).exists() and Path(JAIL).is_dir()),
-        reason="needs bwrap and /jail, see `just test-sandbox`",
-    ),
-]
+pytestmark = pytest.mark.bwrap
 
 
 def run(argv, stdin=b""):

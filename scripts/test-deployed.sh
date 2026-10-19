@@ -1,13 +1,13 @@
 #!/bin/bash
 # builds the image, launches it the way the vps will (cuaas profile, no nic,
-# proxy device for the port) and runs the deploy tests. extra args go to pytest.
-# needs host/setup.sh. run via `just test-deploy`
+# proxy device for the port) and runs the deployed checks. extra args go to pytest.
+# needs host/setup.sh. run via `just test-deployed`
 set -euo pipefail
 # lxc launch/create read yaml from stdin when it's not a tty. under just and
 # limactl shell it never gets EOF and hangs
 exec </dev/null
 
-NAME=cuaas-deploy-test
+NAME=cuaas-deployed-test
 PORT=18000
 repo=$(cd "$(dirname "$0")/.." && pwd)
 # shellcheck source=scripts/lxc.sh
@@ -36,4 +36,4 @@ if ! $up; then
   exit 1
 fi
 
-CUAAS_URL=http://127.0.0.1:$PORT CUAAS_CONTAINER=$NAME uv run pytest -m deploy "$@"
+CUAAS_URL=http://127.0.0.1:$PORT CUAAS_CONTAINER=$NAME uv run pytest -m deployed "$@"

@@ -16,9 +16,8 @@ jobs:
       - run: uv sync --locked
       - run: just lint
       - run: just test
-      - run: just test-sandbox
 
-  deploy:
+  deployed:
     runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v7
@@ -29,4 +28,4 @@ jobs:
           version: 0.13.1
       # no spare block device on the runner, pool is a loop file
       - run: sudo env LXD_DEBUG=1 host/setup.sh
-      - run: just test-deploy
+      - run: just test-deployed

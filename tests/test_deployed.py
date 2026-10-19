@@ -1,4 +1,4 @@
-"""Deploy tests: the prod image launched like on the vps. Run via `just test-deploy`."""
+"""Checks on the built image, launched like on the vps. `just test-deployed`."""
 
 import base64
 import json
@@ -9,14 +9,17 @@ from concurrent.futures import ThreadPoolExecutor
 import httpx2
 import pytest
 
-# set by scripts/test-deploy.sh
+# set by scripts/test-deployed.sh
 URL = os.environ.get("CUAAS_URL", "")
 CONTAINER = os.environ.get("CUAAS_CONTAINER", "")
 
-pytestmark = [
-    pytest.mark.deploy,
-    pytest.mark.skipif(not URL, reason="needs the launched image, see test-deploy"),
-]
+pytestmark = pytest.mark.deployed
+
+
+@pytest.fixture(autouse=True, scope="module")
+def _launched():
+    if not URL or not CONTAINER:
+        pytest.fail("no launched image, run via `just test-deployed`")
 
 
 @pytest.fixture(scope="module")

@@ -40,7 +40,10 @@ ignore = [
 "tests/**" = ["S101", "PLR2004", "D", "ANN"]
 
 [tool.pytest.ini_options]
+# unmarked = app tests: our code without bwrap, the api in-process with FakeRunner.
+# the marked ones only run when asked for, a -m on the command line replaces this one
+addopts = '-m "not bwrap and not deployed"'
 markers = [
-    "sandbox: needs bwrap and /jail, run with `just test-sandbox`",
-    "deploy: needs the image launched like on the vps, run with `just test-deploy`",
+    "bwrap: runs commands in bwrap, needs linux and /jail. `just test-bwrap`",
+    "deployed: checks on the built image, launched like on the vps. `just test-deployed`",
 ]
