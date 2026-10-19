@@ -33,7 +33,7 @@ as ci and the image.
 ```sh
 just vm-up          # create or start the vm, set it up, check it
 just test           # app + bwrap tests, seconds
-just test-app       # our code without bwrap, runs anywhere
+just test-app       # no bwrap, runs anywhere
 just test-bwrap     # runs commands in bwrap, needs linux or the vm
 just test-deployed  # build the image, launch it with no network, check it
 just test-all       # all of the above

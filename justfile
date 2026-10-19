@@ -10,7 +10,7 @@ default:
 # app + bwrap tests, seconds
 test: test-app test-bwrap
 
-# app tests: our code without bwrap, runs anywhere. extra args go to pytest
+# app tests: no bwrap, runs anywhere. extra args go to pytest
 test-app *args:
     uv run pytest "$@"
 
