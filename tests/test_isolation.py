@@ -1,5 +1,6 @@
 """A command in bwrap can't get out. `just test-bwrap`, and in the container."""
 
+import sys
 from pathlib import Path
 
 import pytest
@@ -26,25 +27,20 @@ def test_root_is_read_only():
     assert b"Read-only file system" in result.stderr
 
 
-def test_tmp_is_writable():
-    assert run(["touch", "/tmp/x"]).exit_code == 0  # noqa: S108, the sandbox's tmpfs
-
-
-@pytest.mark.parametrize(
-    "path",
-    [
-        str(Path(__file__).resolve().parents[1] / "pyproject.toml"),
-        "/opt/cuaas/pyproject.toml",
-    ],
-    ids=["repo", "service"],
-)
-def test_host_files_not_visible(path):
-    assert run(["test", "-e", path]).exit_code == 1
-
-
-def test_tmp_is_gone_next_run():
+def test_tmp_is_writable_and_gone_next_run():
     assert run(["touch", "/tmp/x"]).exit_code == 0  # noqa: S108, the sandbox's tmpfs
     assert run(["test", "-e", "/tmp/x"]).exit_code == 1  # noqa: S108
+
+
+# both exist wherever the tests run, so a pass means the jail hid them
+@pytest.mark.parametrize(
+    "path",
+    [Path(__file__).resolve(), Path(sys.prefix).resolve()],
+    ids=["test file", "venv"],
+)
+def test_host_files_not_visible(path):
+    assert path.exists()
+    assert run(["test", "-e", str(path)]).exit_code == 1
 
 
 def test_no_processes_visible():
@@ -59,8 +55,7 @@ def test_no_processes_visible():
 
 @pytest.fixture
 def probe(monkeypatch):
-    if not Path("/usr/bin/python3").exists():
-        pytest.skip("needs /usr/bin/python3 on the host")
+    assert Path("/usr/bin/python3").exists(), "the probes need /usr/bin/python3"
     monkeypatch.setattr(runner, "JAIL", "/")
 
     def probe(code):
