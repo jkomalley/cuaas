@@ -41,11 +41,12 @@ rc=0
 CUAAS_URL=http://127.0.0.1:$PORT CUAAS_CONTAINER=$NAME uv run pytest -m deployed "$@" || rc=1
 
 # the isolation tests again, in the container as cuaas. the image has no pytest
-# and no network, so push the locked test group in. pure python, no build needed
+# and no network, so push locked pytest in. pure python, no build needed
 stage=$(mktemp -d)
 trap 'rm -rf "$stage"; lxc_t 60 delete --force "$NAME" >/dev/null 2>&1 || true' EXIT
 mkdir -p "$stage/cuaas-test/tests"
-uv export --quiet --frozen --only-group test --no-hashes --no-emit-project >"$stage/req.txt"
+uv export --quiet --frozen --only-group test --prune httpx2 --no-hashes --no-emit-project \
+  >"$stage/req.txt"
 uv pip install --quiet --target "$stage/cuaas-test/site" --python-version "$(cat "$repo/.python-version")" \
   --no-deps -r "$stage/req.txt"
 cp "$repo"/tests/{__init__,helpers,test_isolation}.py "$stage/cuaas-test/tests/"

@@ -7,8 +7,11 @@ vm := "limactl shell --workdir " + quote(justfile_directory()) + " cuaas"
 default:
     @just --list
 
-# app + bwrap tests, seconds
-test: test-app test-bwrap
+# app + bwrap tests, seconds. extra args go to pytest, a filter that matches
+# nothing on one side (pytest exit 5) is fine
+test *args:
+    uv run pytest "$@" || [ $? -eq 5 ]
+    just test-bwrap "$@" || [ $? -eq 5 ]
 
 # app tests: no bwrap, runs anywhere. extra args go to pytest
 test-app *args:

@@ -75,8 +75,3 @@ def test_a_route_per_allowed_command(client):
     paths = client.get("/openapi.json").json()["paths"]
     assert set(paths) == {f"/{cmd}" for cmd in ALLOWED}
     assert all(set(ops) == {"post"} for ops in paths.values())
-
-
-def test_openapi_schema_builds(client):
-    # the schema is built on first request, it can break even when routes work
-    assert client.get("/openapi.json").status_code == 200
