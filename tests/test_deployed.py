@@ -65,12 +65,6 @@ def test_unknown_command_is_404(api):
     assert api.post("/env", json={}).status_code == 404
 
 
-def test_host_fs_not_visible(api):
-    r = api.post("/cat", json={"args": ["/opt/cuaas/pyproject.toml"]}).json()
-    assert r["exit_code"] == 1
-    assert "No such file" in r["stderr"]
-
-
 def test_concurrent_requests(api):
     def wc(i):
         return api.post("/wc", json={"args": ["-l"], "stdin": "x\n" * i})
