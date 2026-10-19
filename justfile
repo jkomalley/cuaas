@@ -63,10 +63,10 @@ vm-up:
     #!/bin/bash
     set -euo pipefail
     # repo mounted rw at the same path
-    if limactl list -q | grep -qx cuaas; then
+    if grep -qx cuaas <<<"$(limactl list -q)"; then
       limactl start cuaas
     else
-      limactl disk ls 2>/dev/null | grep -q '^cuaas-lxd ' || limactl disk create cuaas-lxd --size 20GiB
+      grep -q '^cuaas-lxd ' <<<"$(limactl disk ls 2>/dev/null)" || limactl disk create cuaas-lxd --size 20GiB
       limactl start --yes --name=cuaas --mount-only "{{ justfile_directory() }}:w" lima/cuaas.yaml
     fi
     {{ vm }} sudo image/provision.sh

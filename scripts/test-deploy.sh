@@ -25,9 +25,15 @@ lxc_t 60 config device add "$NAME" api proxy \
 booted "$NAME"
 
 # wait for the api to listen, it runs check_gnu first
+up=false
 for _ in $(seq 60); do
-  curl -sf "http://127.0.0.1:$PORT/openapi.json" >/dev/null && break
+  curl -sf --max-time 5 "http://127.0.0.1:$PORT/openapi.json" >/dev/null && up=true && break
   sleep 0.5
 done
+if ! $up; then
+  echo "api didn't come up, cuaas.service log:" >&2
+  lxc_t 30 exec "$NAME" -- journalctl -u cuaas --no-pager -n 50 >&2 || true
+  exit 1
+fi
 
 CUAAS_URL=http://127.0.0.1:$PORT CUAAS_CONTAINER=$NAME uv run pytest -m deploy "$@"

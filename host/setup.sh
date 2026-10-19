@@ -33,9 +33,11 @@ if ! lxc storage show default >/dev/null 2>&1; then
 fi
 
 # default profile: used by the build, has a nic
-lxc profile device show default | grep -q '^root:' \
+# grep a variable, not a pipe: with pipefail an early grep -q exit can fail it
+devices=$(lxc profile device show default)
+grep -q '^root:' <<<"$devices" \
   || lxc profile device add default root disk path=/ pool=default
-lxc profile device show default | grep -q '^eth0:' \
+grep -q '^eth0:' <<<"$devices" \
   || lxc profile device add default eth0 nic network=lxdbr0 name=eth0
 
 # cuaas profile: used by deploys, no nic

@@ -10,7 +10,7 @@ lxc_t() {
   if [[ $rc == 124 ]]; then
     local dump
     dump=/tmp/lxd-stall-$(date +%s).txt
-    curl -s "http://127.0.0.1:8444/debug/pprof/goroutine?debug=2" >"$dump" || true
+    curl -s --max-time 10 "http://127.0.0.1:8444/debug/pprof/goroutine?debug=2" >"$dump" || true
     echo "lxc $1 stalled after ${secs}s, lxd's goroutines are in $dump" >&2
   fi
   return "$rc"
