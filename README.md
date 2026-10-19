@@ -43,6 +43,15 @@ just check          # lint + test
 just vm-doctor      # what's wrong with the vm and how to fix it
 ```
 
+What the tests check:
+
+- app (`test_api.py`, `test_models.py`, ...): the api, request validation and the runner
+  logic, with FakeRunner instead of bwrap
+- bwrap: `test_passthrough.py`, what goes in comes out unchanged and the binaries are gnu.
+  `test_isolation.py`, a command can't get out (network, pids, files, /tmp, capabilities)
+- deployed: `test_deployed.py` checks a container from the built image over http, then the
+  isolation tests run again inside it as cuaas
+
 `just vm-rm && just vm-up` gets you a fresh vm, nothing to do by hand. `uv sync` outside
 the vm is just for the editor, the vm keeps its venv in `~/.venvs/cuaas`.
 
