@@ -6,6 +6,18 @@ on:
   pull_request:
 
 jobs:
+  lint:
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: extractions/setup-just@v4
+      # version matches provision.sh
+      - uses: astral-sh/setup-uv@v10.2.0
+        with:
+          version: 0.13.1
+      - run: uv sync --locked
+      - run: just lint
+
   test:
     runs-on: ubuntu-26.04
     steps:
@@ -14,11 +26,9 @@ jobs:
       # bwrap, /jail, the cuaas user, uv
       - run: sudo image/provision.sh
       - run: uv sync --locked
-      - run: just lint
       - run: just test
-      - run: just test-sandbox
 
-  deploy:
+  deployed:
     runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v7
@@ -29,4 +39,4 @@ jobs:
           version: 0.13.1
       # no spare block device on the runner, pool is a loop file
       - run: sudo env LXD_DEBUG=1 host/setup.sh
-      - run: just test-deploy
+      - run: just test-deployed

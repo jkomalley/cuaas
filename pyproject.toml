@@ -13,13 +13,16 @@ dependencies = [
 ]
 
 [build-system]
-requires = ["uv_build>=0.12.23,<0.13.0"]
+requires = ["uv_build>=0.13.1,<0.14.0"]
 build-backend = "uv_build"
 
 [dependency-groups]
-dev = [
+test = [
     "httpx2>=2.13.1",
     "pytest>=9.1.1",
+]
+dev = [
+    { include-group = "test" },
     "ruff>=0.16.10",
     "ty>=0.0.84",
 ]
@@ -40,7 +43,10 @@ ignore = [
 "tests/**" = ["S101", "PLR2004", "D", "ANN"]
 
 [tool.pytest.ini_options]
+# unmarked = app tests: no bwrap, the api runs in-process with FakeRunner.
+# the marked ones only run when asked for, a -m on the command line replaces this one
+addopts = '-m "not bwrap and not deployed"'
 markers = [
-    "sandbox: needs bwrap and /jail, run with `just test-sandbox`",
-    "deploy: needs the image launched like on the vps, run with `just test-deploy`",
+    "bwrap: runs commands in bwrap, needs linux and /jail. `just test-bwrap`",
+    "deployed: checks on a container launched from the built image. `just test-deployed`",
 ]

@@ -7,32 +7,38 @@ vm := "limactl shell --workdir " + quote(justfile_directory()) + " cuaas"
 default:
     @just --list
 
-# unit tests, no vm. extra args go to pytest
+# app + bwrap tests, seconds. extra args go to pytest, a filter that matches
+# nothing on one side (pytest exit 5) is fine
 test *args:
-    uv run pytest -m "not sandbox and not deploy" "$@"
+    uv run pytest "$@" || [ $? -eq 5 ]
+    just test-bwrap "$@" || [ $? -eq 5 ]
 
-# sandbox tests with bwrap, in the vm. extra args go to pytest
+# app tests: no bwrap, runs anywhere. extra args go to pytest
+test-app *args:
+    uv run pytest "$@"
+
+# tests that run commands in bwrap. extra args go to pytest
 [linux]
-test-sandbox *args:
-    CUAAS_SANDBOX=1 uv run pytest -m sandbox "$@"
+test-bwrap *args:
+    uv run pytest -m bwrap "$@"
 
-# sandbox tests with bwrap, in the vm. extra args go to pytest
+# tests that run commands in bwrap, in the vm. extra args go to pytest
 [macos]
-test-sandbox *args:
-    {{ vm }} just test-sandbox "$@"
+test-bwrap *args:
+    {{ vm }} just test-bwrap "$@"
 
-# build and launch the image like prod, run http tests. extra args go to pytest
+# build the image, launch it with no network, check it. extra args go to pytest
 [linux]
-test-deploy *args:
-    scripts/test-deploy.sh "$@"
+test-deployed *args:
+    scripts/test-deployed.sh "$@"
 
-# build and launch the image like prod, run http tests. extra args go to pytest
+# build the image, launch it with no network, check it. extra args go to pytest
 [macos]
-test-deploy *args:
-    {{ vm }} just test-deploy "$@"
+test-deployed *args:
+    {{ vm }} just test-deployed "$@"
 
-# unit, sandbox and deploy tests
-test-all: test test-sandbox test-deploy
+# app, bwrap and deployed tests
+test-all: test test-deployed
 
 # the api in the vm, on localhost:8000, reloads
 [linux]
@@ -55,7 +61,7 @@ fix:
     uv run ruff check --fix
     uv run ruff format
 
-# lint + unit tests
+# lint + app and bwrap tests
 check: lint test
 
 # create or start the dev vm, set it up, then vm-doctor

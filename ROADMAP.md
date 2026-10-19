@@ -10,7 +10,7 @@ throwaway bwrap sandbox over chiselled GNU coreutils from Ubuntu 26.04. No shell
 - pick bwrap or nsjail
 - run a command with args and stdin, get stdout, stderr and exit code
 - refuse to start if it isn't GNU coreutils
-- dev vm set up like ci and the image, unit tests on the mac
+- dev vm set up like ci and the image, app tests run anywhere
 
 ## M2 API
 

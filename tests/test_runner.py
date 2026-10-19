@@ -28,6 +28,8 @@ def test_bwrap_argv_sandbox_flags():
     assert "--setenv LC_ALL C.UTF-8" in joined
     assert "--argv0 wc --" in joined
     assert "--chdir /" in joined
+    # only matters if bwrap ever runs as root, unprivileged bwrap drops caps anyway
+    assert "--cap-drop ALL" in joined
     for flag in ["--unshare-all", "--die-with-parent", "--new-session", "--clearenv"]:
         assert flag in argv
 

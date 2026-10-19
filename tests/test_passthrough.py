@@ -1,8 +1,7 @@
-"""Sandbox tests, need bwrap and /jail. `just test-sandbox` runs them in the vm."""
+"""What goes in comes out unchanged, and the binaries are GNU. `just test-bwrap`."""
 
 import asyncio
 import base64
-import os
 from pathlib import Path
 
 import pytest
@@ -10,22 +9,10 @@ from fastapi.testclient import TestClient
 
 from cuaas.allowlist import ALLOWED
 from cuaas.main import create_app
-from cuaas.runner import BWRAP, JAIL, BwrapRunner, SandboxError, check_gnu
+from cuaas.runner import JAIL, BwrapRunner, SandboxError, check_gnu
+from tests.helpers import run
 
-# set by `just test-sandbox`: a broken setup fails instead of skipping
-REQUIRED = os.environ.get("CUAAS_SANDBOX") == "1"
-
-pytestmark = [
-    pytest.mark.sandbox,
-    pytest.mark.skipif(
-        not REQUIRED and not (Path(BWRAP).exists() and Path(JAIL).is_dir()),
-        reason="needs bwrap and /jail, see `just test-sandbox`",
-    ),
-]
-
-
-def run(argv, stdin=b""):
-    return asyncio.run(BwrapRunner().run(argv, stdin))
+pytestmark = pytest.mark.bwrap
 
 
 def test_wc_with_stdin():
@@ -63,26 +50,6 @@ def test_bytes_pass_through_unchanged():
 def test_utf8_locale():
     # 2 in C.UTF-8, 3 if the locale silently fell back to C
     assert run(["wc", "-m"], "é\n".encode()).stdout == b"2\n"
-
-
-def test_env_is_only_ours():
-    assert sorted(run(["env"]).stdout.splitlines()) == [b"LC_ALL=C.UTF-8", b"PWD=/"]
-
-
-def test_cwd_is_root(monkeypatch):
-    # /usr/bin is in the jail too, so without --chdir bwrap would stay there
-    monkeypatch.chdir("/usr/bin")
-    assert run(["pwd"]).stdout == b"/\n"
-
-
-def test_root_is_read_only():
-    result = run(["touch", "/x"])
-    assert result.exit_code == 1
-    assert b"Read-only file system" in result.stderr
-
-
-def test_tmp_is_writable():
-    assert run(["touch", "/tmp/x"]).exit_code == 0  # noqa: S108, the sandbox's tmpfs
 
 
 def test_killed_shows_as_128_plus_signal():

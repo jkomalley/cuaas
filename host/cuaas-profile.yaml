@@ -1,4 +1,4 @@
-description: cuaas as deployed, no network. the port comes from a proxy device added at launch
+description: cuaas, no network. the port comes from a proxy device added at launch
 config: {}
 devices:
   root:
